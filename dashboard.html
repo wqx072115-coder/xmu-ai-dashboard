@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>XMU AI 毕业仪表盘 · 厦门大学人工智能专硕 (085410)</title>
+<style>
+:root{
+  --bg:#f2f5f9; --card:#ffffff; --ink:#16202c; --muted:#66788d; --line:#e3e9f1;
+  --brand:#1f6fb2; --brand-2:#0d3b66; --accent:#c9a227; --ok:#2e7d4f; --warn:#b3452f;
+  --blue:#1f6fb2; --navy:#0d3b66; --gold:#c9a227; --gray:#94a3b8;
+  --shadow:0 4px 18px rgba(13,59,102,.07); --radius:14px;
+  --c-pub:#1f6fb2; --c-req:#0d3b66; --c-ele:#2e9e6b; --c-tra:#c9a227;
+}
+[data-theme="dark"]{
+  --bg:#0e141c; --card:#161f2b; --ink:#e7eef6; --muted:#8ea0b5; --line:#263242;
+  --brand:#3d8fd4; --brand-2:#6aa5d8; --accent:#d8b64a; --ok:#4caf7d; --warn:#e0765a;
+  --blue:#3d8fd4; --navy:#8fb6dd; --gold:#d8b64a; --gray:#64748b;
+  --shadow:0 4px 18px rgba(0,0,0,.35);
+  --c-pub:#3d8fd4; --c-req:#7f9fc0; --c-ele:#4caf7d; --c-tra:#d8b64a;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"PingFang SC","Microsoft YaHei","Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:var(--brand)}
+button{font-family:inherit}
+.icon{display:inline-block;width:16px;height:16px;vertical-align:-2px;margin-right:5px}
+
+/* ===== Topbar ===== */
+.topbar{position:sticky;top:0;z-index:100;background:var(--card);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;padding:10px 20px;flex-wrap:wrap}
+.topbar .brand{display:flex;align-items:center;gap:10px;margin-right:auto;font-weight:800;color:var(--navy)}
+.topbar .brand .logo{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,var(--brand),var(--accent));color:#fff;display:grid;place-items:center;font-size:14px;font-weight:800}
+.topbar .brand small{display:block;font-size:11px;font-weight:500;color:var(--muted);line-height:1.1}
+.tbtn{background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:7px 12px;font-size:13px;cursor:pointer;transition:.15s}
+.tbtn:hover{border-color:var(--brand);color:var(--brand)}
+.tbtn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.tbtn.primary:hover{background:var(--brand-2)}
+
+/* ===== Tabs ===== */
+.tabs{display:flex;gap:6px;padding:14px 20px 0;max-width:1280px;margin:0 auto;flex-wrap:wrap}
+.tab{border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:999px;padding:8px 16px;font-size:14px;cursor:pointer;transition:.15s;font-weight:600}
+.tab:hover{color:var(--brand)}
+.tab.active{background:var(--brand);border-color:var(--brand);color:#fff}
+
+/* ===== Layout ===== */
+main{max-width:1280px;margin:0 auto;padding:18px 20px 90px}
+.panel{display:none}
+.panel.active{display:block}
+.grid{display:grid;gap:16px}
+.cols-4{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+.cols-3{grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+.cols-2{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+
+/* ===== Card ===== */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px}
+.card h3{font-size:16px;color:var(--navy);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.card h3 .hint{font-size:12px;font-weight:500;color:var(--muted)}
+
+/* ===== Summary cards ===== */
+.sum{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;position:relative;overflow:hidden}
+.sum .k{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+.sum .k .tag{font-size:11px;font-weight:700;padding:1px 8px;border-radius:999px;background:var(--bg);color:var(--muted)}
+.sum .v{font-size:26px;font-weight:800;color:var(--navy);margin:6px 0 2px}
+.sum .v small{font-size:14px;font-weight:600;color:var(--muted)}
+.sum .bar{height:8px;border-radius:999px;background:var(--bg);overflow:hidden;margin-top:8px}
+.sum .bar i{display:block;height:100%;border-radius:999px;transition:width .5s ease}
+.sum .d{font-size:12px;color:var(--muted);margin-top:6px}
+
+/* ===== Progress ring (total) ===== */
+.ringwrap{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.ring{position:relative;flex:0 0 auto}
+.ring svg{transform:rotate(-90deg)}
+.ring .c{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+.ring .c b{font-size:24px;color:var(--navy);line-height:1}
+.ring .c span{font-size:11px;color:var(--muted)}
+
+/* ===== Tables ===== */
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{padding:9px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:middle}
+th{background:var(--bg);color:var(--navy);font-weight:700;white-space:nowrap;position:sticky;top:0}
+tbody tr:hover{background:var(--bg)}
+.cred{font-weight:800;color:var(--brand);text-align:center;white-space:nowrap}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--muted)}
+.tag{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap}
+.tag.must{background:#fdeaea;color:var(--warn)}
+.tag.group{background:#fff3e0;color:#b07d12}
+.tag.opt{background:var(--bg);color:var(--muted)}
+.tag.two{background:#eaf2fb;color:var(--brand)}
+.sel{width:17px;height:17px;accent-color:var(--brand);cursor:pointer;vertical-align:middle}
+.search{width:100%;max-width:320px;padding:8px 12px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink);font-size:13px}
+
+/* ===== Timetable ===== */
+.tt-wrap{overflow-x:auto}
+.tt{display:grid;grid-template-columns:54px repeat(7,minmax(86px,1fr));gap:3px;min-width:720px}
+.tt .hdr{background:var(--bg);color:var(--navy);font-weight:700;text-align:center;padding:8px 2px;border-radius:8px;font-size:13px}
+.tt .tcol{background:var(--bg);color:var(--muted);text-align:center;padding:4px 2px;border-radius:8px;font-size:11px;line-height:1.2}
+.tt .cell{background:var(--card);border:1px solid var(--line);border-radius:8px;min-height:44px;padding:4px;position:relative}
+.tt .cell.free-morning{background:rgba(46,158,107,.07);border-color:rgba(46,158,107,.2)}
+.tt .cell.free-noon{background:rgba(31,111,178,.06);border-color:rgba(31,111,178,.18)}
+.course-block{background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff;border-radius:8px;padding:6px 8px;font-size:12px;line-height:1.35;cursor:pointer;box-shadow:0 2px 8px rgba(13,59,102,.2);min-height:38px;overflow:hidden}
+.course-block .nm{font-weight:700}
+.course-block .rm{font-size:11px;opacity:.85}
+.course-block[data-color]{background:var(--c)}
+
+/* ===== Milestones ===== */
+.mile{border:1px solid var(--line);border-radius:var(--radius);padding:16px;background:var(--card)}
+.mile .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+.mile .nm{font-weight:700;color:var(--navy);font-size:15px}
+.mile .cr{font-size:12px;color:var(--brand);font-weight:700;background:var(--bg);padding:2px 10px;border-radius:999px}
+.mile .due{font-size:12px;color:var(--muted);margin:4px 0 10px}
+.steps{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.step{flex:1;min-width:70px;text-align:center;padding:8px 6px;border-radius:9px;background:var(--bg);font-size:12px;color:var(--muted);cursor:pointer;border:1px solid transparent;transition:.15s}
+.step.on{background:var(--brand);color:#fff;font-weight:700}
+.step:hover{border-color:var(--brand)}
+.counter{display:flex;align-items:center;gap:14px}
+.counter .big{font-size:34px;font-weight:800;color:var(--navy);line-height:1}
+.counter .lbl{font-size:13px;color:var(--muted)}
+.meter{height:10px;border-radius:999px;background:var(--bg);overflow:hidden;flex:1}
+.meter i{display:block;height:100%;border-radius:999px;transition:width .4s}
+
+/* ===== Pipeline ===== */
+.pipe{display:flex;flex-direction:column;gap:0}
+.pipe-item{display:flex;gap:12px;padding:12px 0;border-left:3px solid var(--line);padding-left:18px;position:relative}
+.pipe-item:before{content:"";position:absolute;left:-7px;top:18px;width:11px;height:11px;border-radius:50%;background:var(--line)}
+.pipe-item.done{border-color:var(--ok)}
+.pipe-item.done:before{background:var(--ok)}
+.pipe-item.now{border-color:var(--accent)}
+.pipe-item.now:before{background:var(--accent);box-shadow:0 0 0 4px rgba(201,162,39,.2)}
+.pipe-item .pt{font-weight:700;color:var(--navy)}
+.pipe-item .pd{font-size:12.5px;color:var(--muted)}
+
+/* ===== Buttons / chips ===== */
+.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:9px;padding:7px 13px;font-size:13px;cursor:pointer;transition:.15s}
+.btn:hover{border-color:var(--brand);color:var(--brand)}
+.btn.pri{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.pri:hover{background:var(--brand-2)}
+.btn.danger{color:var(--warn)}
+.btn.danger:hover{border-color:var(--warn);color:var(--warn)}
+.btn.sm{padding:4px 10px;font-size:12px;border-radius:7px}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.grow{flex:1}
+.mt{margin-top:14px}
+.mb{margin-bottom:10px}
+
+/* ===== Modal ===== */
+.overlay{position:fixed;inset:0;background:rgba(8,16,28,.5);backdrop-filter:blur(2px);z-index:200;display:none;align-items:center;justify-content:center;padding:18px}
+.overlay.open{display:flex}
+.modal{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.3);width:100%;max-width:560px;max-height:90vh;overflow:auto;padding:22px}
+.modal h3{font-size:17px;color:var(--navy);margin-bottom:16px}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:5px;font-weight:600}
+.field input,.field select,.field textarea{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink);font-size:13.5px;font-family:inherit}
+.field textarea{min-height:70px;resize:vertical}
+.field .help{font-size:11.5px;color:var(--muted);margin-top:4px}
+.mrow{display:flex;gap:10px}
+.mrow .field{flex:1}
+
+/* ===== Toast ===== */
+#toasts{position:fixed;right:18px;bottom:18px;z-index:400;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--navy);color:#fff;padding:11px 16px;border-radius:10px;font-size:13.5px;box-shadow:0 8px 24px rgba(0,0,0,.25);max-width:320px;animation:pop .25s ease}
+.toast.err{background:var(--warn)}
+.toast.ok{background:var(--ok)}
+@keyframes pop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+.disc{font-size:12px;color:var(--muted);margin-top:20px;text-align:center;padding-top:14px;border-top:1px solid var(--line)}
+.note{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--muted)}
+.empty{padding:26px;text-align:center;color:var(--muted);font-size:13.5px}
+
+@media (max-width:640px){.topbar{padding:8px 12px}.tabs{padding:10px 12px 0}main{padding:12px 12px 70px}.card{padding:15px}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand"><div class="logo">厦</div><div>XMU AI 毕业仪表盘<small>人工智能专硕 085410 · 2026级</small></div></div>
+  <button class="tbtn" data-action="export"><span class="icon">⬇</span>导出</button>
+  <button class="tbtn" data-action="import"><span class="icon">⬆</span>导入</button>
+  <button class="tbtn" data-action="gist"><span class="icon">☁</span>Gist</button>
+  <button class="tbtn" data-action="settings"><span class="icon">⚙</span>设置</button>
+  <button class="tbtn" id="themeBtn"><span class="icon">◐</span>主题</button>
+  <input type="file" id="fileImport" accept="application/json" style="display:none">
+</div>
+
+<div class="tabs">
+  <button class="tab active" data-tab="tab1">① 学分与课程</button>
+  <button class="tab" data-tab="tab2">② 智能课表</button>
+  <button class="tab" data-tab="tab3">③ 培养环节</button>
+  <button class="tab" data-tab="tab4">④ 科研与毕业</button>
+</div>
+
+<main>
+  <!-- ============ Module 1: Credit Hub ============ -->
+  <section class="panel active" id="tab1">
+    <div class="grid cols-4" id="summary"></div>
+    <div class="card mt">
+      <h3>总学分进度 <span class="hint">目标 31 = 课程 21 + 培养环节 10</span></h3>
+      <div class="ringwrap">
+        <div class="ring" id="ring"></div>
+        <div class="grow" id="ringLegend"></div>
+      </div>
+    </div>
+    <div class="card mt">
+      <h3>课程清单 <span class="hint">勾选 = 已选/已完成；选择自动保存</span></h3>
+      <div class="row mb">
+        <input class="search" id="courseSearch" placeholder="搜索课程名 / 代码 / 学院…">
+        <button class="btn" id="filterAI">只看 AI/信息学院相关</button>
+        <button class="btn pri" data-action="addCourse">＋ 添加自定义课程</button>
+        <button class="btn" data-action="timeline">📅 选课时间与提示</button>
+      </div>
+      <div id="courseTables"></div>
+    </div>
+  </section>
+
+  <!-- ============ Module 2: Schedule ============ -->
+  <section class="panel" id="tab2">
+    <div class="card">
+      <h3>智能课表 <span class="hint" id="weekInfo">第 — 周</span></h3>
+      <div class="row mb">
+        <button class="btn pri" data-action="addBlock">＋ 添加课程时段</button>
+        <button class="btn" data-action="ics">⬇ 导出 .ics 日历</button>
+        <button class="btn" data-action="vision">🧠 截图识别导入</button>
+        <label class="btn" style="cursor:pointer"><input type="checkbox" id="freeToggle" style="vertical-align:-2px"> 高亮空闲时段</label>
+      </div>
+      <div class="tt-wrap"><div class="tt" id="timetable"></div></div>
+      <div class="disc" id="ttLegend"></div>
+    </div>
+  </section>
+
+  <!-- ============ Module 3: Milestones ============ -->
+  <section class="panel" id="tab3">
+    <div class="grid cols-2" id="milestones"></div>
+  </section>
+
+  <!-- ============ Module 4: Thesis ============ -->
+  <section class="panel" id="tab4">
+    <div class="grid cols-2">
+      <div class="card">
+        <h3>科研小论文 <span class="hint">导师前置审核</span></h3>
+        <div class="row mb">
+          <button class="btn pri sm" data-action="addPaper">＋ 添加论文/成果</button>
+        </div>
+        <div id="paperList"></div>
+        <div class="note mt" id="paperRule"></div>
+      </div>
+      <div class="card">
+        <h3>论文里程碑清单</h3>
+        <div id="paperSteps"></div>
+      </div>
+      <div class="card">
+        <h3>毕业倒计时流程</h3>
+        <div class="pipe" id="thesisPipe"></div>
+      </div>
+      <div class="card">
+        <h3>大论文（学位论文/实践成果）要点</h3>
+        <div id="thesisRules"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Modals -->
+<div class="overlay" id="overlay">
+  <div class="modal" id="modalBody"></div>
+</div>
+<div id="toasts"></div>
+
+<script>
+/* =====================================================================
+   数据：依据《2026级专业学位培养方案 085410 人工智能（人工智能系）》
+   ===================================================================== */
+const DAYS = ["周一","周二","周三","周四","周五","周六","周日"];
+const PERIOD_TIMES = ["08:00","08:55","09:50","10:45","11:40","14:30","15:25","16:20","17:15","19:00","19:55"];
+
+const C = {
+  public: [
+    {code:"G10101300082",name:"马克思主义与当代科技",credit:1,hours:16,sem:"春季",college:"研究生院",rule:"2选1",tag:"two"},
+    {code:"12641",name:"马克思主义与社会科学方法论",credit:1,hours:17,sem:"春季",college:"研究生院",rule:"2选1",tag:"two"},
+    {code:"12887",name:"专业英语",credit:2,hours:32,sem:"秋季",college:"信息学院",rule:"必选",tag:"must"},
+    {code:"G10101300005",name:"工程伦理",credit:1,hours:16,sem:"春季",college:"研究生院",rule:"必选",tag:"must"},
+    {code:"G10101300080",name:"中国式现代化的理论与实践",credit:2,hours:32,sem:"秋季",college:"研究生院",rule:"必选",tag:"must"},
+    {code:"G10101300081",name:"习近平著作选读",credit:2,hours:32,sem:"秋季",college:"研究生院",rule:"选修",tag:"opt"},
+  ],
+  required: [
+    {code:"17176",name:"科技论文写作",credit:2,hours:32,sem:"秋季",college:"信息学院",rule:"必选",tag:"must"},
+    {code:"12698",name:"机器学习",credit:3,hours:48,sem:"春季",college:"信息学院",rule:"组内≥2门",tag:"group"},
+    {code:"13058",name:"高级人工智能",credit:3,hours:48,sem:"秋季",college:"计算机科学与技术系 / 航空航天学院",rule:"组内≥2门·不可复选",tag:"group"},
+    {code:"13071",name:"计算机视觉",credit:3,hours:48,sem:"秋季",college:"计算机科学与技术系",rule:"组内≥2门",tag:"group"},
+    {code:"13086",name:"计算语言学",credit:3,hours:48,sem:"秋季",college:"计算机科学与技术系",rule:"组内≥2门",tag:"group"},
+    {code:"G10304800022",name:"网络系统前沿研究",credit:3,hours:48,sem:"秋季",college:"信息学院",rule:"组内≥2门",tag:"group"},
+    {code:"G10304800023",name:"存储系统",credit:3,hours:48,sem:"春季",college:"信息学院",rule:"组内≥2门",tag:"group"},
+    {code:"16413",name:"矩阵论",credit:3,hours:48,sem:"春秋季",college:"电子科学系",rule:"电子方向",tag:"opt"},
+    {code:"16412",name:"数值分析",credit:3,hours:48,sem:"春季",college:"电子科学系",rule:"电子方向",tag:"opt"},
+    {code:"16085",name:"文献检索及科技英文论文写作",credit:2,hours:32,sem:"秋季",college:"电子科学与技术学院",rule:"电子方向",tag:"opt"},
+  ],
+  elective: [
+    {code:"G10304800028",name:"工程素养训练",credit:2,hours:32,sem:"春季",college:"信息学院",rule:"必选",tag:"must"},
+    {code:"G10304800014",name:"生成式人工智能技术与应用",credit:2,hours:32,sem:"秋季",college:"信息学院",rule:"任选",tag:"opt"},
+    {code:"17843",name:"深度学习",credit:2,hours:32,sem:"秋季",college:"信息学院",rule:"任选",tag:"opt"},
+    {code:"17844",name:"智能计算系统",credit:2,hours:32,sem:"秋季",college:"信息学院",rule:"任选",tag:"opt"},
+    {code:"17851",name:"心脑计算",credit:2,hours:32,sem:"秋季",college:"信息学院",rule:"任选",tag:"opt"},
+    {code:"17842",name:"最优化理论与算法",credit:3,hours:48,sem:"秋季",college:"信息学院",rule:"任选",tag:"opt"},
+    {code:"15517",name:"矩阵论（信息学院）",credit:3,hours:48,sem:"秋季",college:"信息学院",rule:"任选",tag:"opt"},
+    {code:"G10304800024",name:"软件测试与程序分析基础",credit:2,hours:32,sem:"秋季",college:"信息学院",rule:"任选",tag:"opt"},
+    {code:"G10304800029",name:"高阶工程素养训练",credit:2,hours:32,sem:"秋季",college:"信息学院",rule:"硕博连读/直博",tag:"opt"},
+    {code:"G10304800031",name:"密码算法前沿研究",credit:2,hours:32,sem:"春季",college:"信息学院",rule:"任选",tag:"opt"},
+    {code:"G10304800035",name:"大学生职业素养养成",credit:1,hours:16,sem:"秋季",college:"信息学院",rule:"任选",tag:"opt"},
+    {code:"15505",name:"自然语言处理及机器翻译",credit:2,hours:32,sem:"秋季",college:"人工智能系",rule:"任选",tag:"opt"},
+    {code:"13685",name:"智能语音技术及其应用",credit:2,hours:32,sem:"春季",college:"人工智能系",rule:"任选",tag:"opt"},
+    {code:"12690",name:"模式识别",credit:2,hours:32,sem:"春季",college:"信息学院",rule:"任选",tag:"opt"},
+    {code:"13077",name:"智能机器人",credit:2,hours:32,sem:"秋季",college:"计算机科学与技术系",rule:"任选",tag:"opt"},
+    {code:"13072",name:"大数据处理技术",credit:2,hours:32,sem:"春季",college:"计算机科学与技术系",rule:"任选",tag:"opt"},
+    {code:"13073",name:"数据挖掘与分析",credit:2,hours:32,sem:"秋季",college:"计算机科学与技术系",rule:"任选",tag:"opt"},
+    {code:"15504",name:"多媒体技术",credit:2,hours:32,sem:"秋季",college:"计算机科学与技术系",rule:"任选",tag:"opt"},
+    {code:"13037",name:"计算理论基础",credit:3,hours:48,sem:"秋季",college:"计算机科学与技术系",rule:"任选",tag:"opt"},
+    {code:"12663",name:"非线性与自适应控制",credit:3,hours:48,sem:"秋季",college:"自动化系",rule:"任选",tag:"opt"},
+    {code:"12858",name:"半导体光电子学",credit:3,hours:48,sem:"秋季",college:"微电子与集成电路系",rule:"任选",tag:"opt"},
+    {code:"12861",name:"高等物理光学",credit:3,hours:48,sem:"秋季",college:"电子工程系",rule:"任选",tag:"opt"},
+    {code:"12876",name:"微纳电子器件与工艺实验",credit:2,hours:32,sem:"春季",college:"电子工程系",rule:"任选",tag:"opt"},
+    {code:"12880",name:"光学系统CAD",credit:2,hours:32,sem:"春季",college:"电子工程系",rule:"任选",tag:"opt"},
+    {code:"12884",name:"电磁波及其应用(高级篇)",credit:2,hours:32,sem:"春季",college:"电子工程系",rule:"任选",tag:"opt"},
+    {code:"12885",name:"高级光纤传感理论与技术",credit:2,hours:32,sem:"春季",college:"电子工程系",rule:"任选",tag:"opt"},
+    {code:"12964",name:"电子科学与技术前沿",credit:3,hours:48,sem:"春季",college:"电子工程系",rule:"任选",tag:"opt"},
+    {code:"12965",name:"光电子技术进展",credit:2,hours:32,sem:"春季",college:"电子工程系",rule:"任选",tag:"opt"},
+    {code:"12966",name:"固体激光器的研究进展及应用",credit:2,hours:32,sem:"春季",college:"电子工程系",rule:"任选",tag:"opt"},
+    {code:"12986",name:"智能通讯系统理论与模型",credit:2,hours:32,sem:"秋季",college:"电子工程系",rule:"任选",tag:"opt"},
+    {code:"13010",name:"光纤光学",credit:3,hours:48,sem:"秋季",college:"电子工程系",rule:"任选",tag:"opt"},
+    {code:"13014",name:"现代光学薄膜技术",credit:2,hours:32,sem:"春季",college:"电子工程系",rule:"任选",tag:"opt"},
+    {code:"14775",name:"分子影像技术",credit:2,hours:32,sem:"秋季",college:"电子科学系",rule:"任选",tag:"opt"},
+    {code:"14777",name:"波谱分析",credit:2,hours:32,sem:"春季",college:"电子科学系",rule:"任选",tag:"opt"},
+    {code:"14778",name:"高维数据分析与建模",credit:2,hours:32,sem:"春季",college:"电子科学系",rule:"任选",tag:"opt"},
+    {code:"14779",name:"高级编程技术",credit:2,hours:32,sem:"春季",college:"电子科学系",rule:"任选",tag:"opt"},
+    {code:"14780",name:"半导体照明技术",credit:2,hours:32,sem:"春季",college:"电子科学系",rule:"任选",tag:"opt"},
+    {code:"14781",name:"现代信号处理",credit:2,hours:32,sem:"春季",college:"电子科学系",rule:"任选",tag:"opt"},
+    {code:"14782",name:"放电等离子体及其应用",credit:2,hours:32,sem:"春季",college:"电子科学系",rule:"任选",tag:"opt"},
+    {code:"14783",name:"天线理论与设计",credit:2,hours:32,sem:"秋季",college:"电子科学系",rule:"任选",tag:"opt"},
+    {code:"14785",name:"计算电磁学",credit:2,hours:32,sem:"秋季",college:"电子科学系",rule:"任选",tag:"opt"},
+    {code:"14788",name:"纳光子学及其应用",credit:2,hours:32,sem:"春季",college:"电子科学系",rule:"任选",tag:"opt"},
+    {code:"14789",name:"太赫兹与光电子技术",credit:2,hours:32,sem:"春季",college:"电子科学系",rule:"任选",tag:"opt"},
+    {code:"14994",name:"磁共振新技术与应用",credit:2,hours:32,sem:"春季",college:"电子科学系",rule:"任选",tag:"opt"},
+    {code:"14995",name:"现代电子技术",credit:3,hours:48,sem:"春季",college:"电子科学系",rule:"任选",tag:"opt"},
+    {code:"15748",name:"磁共振波谱实验",credit:2,hours:32,sem:"秋季",college:"电子科学系",rule:"任选",tag:"opt"},
+    {code:"15749",name:"磁共振成像实验",credit:2,hours:32,sem:"秋季",college:"电子科学系",rule:"任选",tag:"opt"},
+    {code:"15760",name:"光电检测技术",credit:2,hours:32,sem:"秋季",college:"电子科学与技术学院",rule:"任选",tag:"opt"},
+    {code:"15761",name:"高等电磁理论",credit:3,hours:48,sem:"秋季",college:"电子科学系",rule:"任选",tag:"opt"},
+  ],
+};
+
+const TARGETS = { public:6, required:8, elective:7, training:10, total:31 };
+const CAT_META = {
+  public:{label:"公共课",color:"var(--c-pub)",target:6},
+  required:{label:"必修课",color:"var(--c-req)",target:8},
+  elective:{label:"选修课",color:"var(--c-ele)",target:7},
+  training:{label:"培养环节",color:"var(--c-tra)",target:10},
+};
+const AI_COLLEGES = ["信息学院","人工智能系","计算机科学与技术系","自动化系"];
+
+const TRAINING = [
+  {id:"ethics",name:"学术规范教育",credit:0.5,due:"一年级秋季学期选课前",type:"toggle"},
+  {id:"proposal",name:"论文开题报告",credit:0.5,due:"一年级夏季学期结束前（通过至答辩 ≥6 个月）",type:"steps",steps:["选题确认","报告撰写","答辩审批","学分认定"]},
+  {id:"midterm",name:"中期考核",credit:1,due:"二年级夏季学期结束前（开题后 1 年）",type:"toggle"},
+  {id:"practice",name:"专业实践",credit:6,due:"三年级秋季学期结束前（累计 ≥6 个月，≥5000 字报告）",type:"practice"},
+  {id:"teaching",name:"教学实践",credit:1,due:"春秋季（硕士必选）",type:"teaching"},
+  {id:"lecture",name:"学术与技术交流",credit:1,due:"三年级秋季学期结束前（≥20 场讲座）",type:"lecture"},
+];
+
+const PAPER_STEPS = ["选题与实验跑通","论文初稿完成","导师初审与修改","投稿与返修","录用与成果登记"];
+const THESIS_PIPE = [
+  {id:"predefense",name:"预答辩",desc:"正式答辩前 3 个月，有不合格率，通过后方可送审"},
+  {id:"blind",name:"盲审 / 论文送审",desc:"预答辩通过后；查重复制比 <10%"},
+  {id:"defense",name:"正式答辩与学位申请",desc:"学位评定委员会审核"},
+];
+
+/* =====================================================================
+   状态与持久化
+   ===================================================================== */
+const LS_KEY = "xmu_ai_dashboard_v1";
+const STATE_VERSION = 1;
+const DEFAULT_STATE = {
+  version: STATE_VERSION,
+  courses:{},            // {code:true}
+  custom:[],             // {id,name,credit,hours,sem,college,category,rule}
+  schedule:[],           // {id,name,day,start,end,room,color}
+  milestones:{},         // 见下
+  papers:[],             // {id,title,venue,venueType,status,note}
+  paperStep:0,           // 当前里程碑
+  thesis:{},             // {predefense,blind,defense} bool
+  settings:{startDate:"2026-09-01",llmProvider:"deepseek",llmBaseUrl:"",llmApiKey:"",llmModel:"",gistToken:"",gistId:""},
+  theme:"light",
+};
+function defMile(t){
+  if(t.type==="toggle") return {done:false};
+  if(t.type==="steps") return {step:0};
+  if(t.type==="practice") return {months:0,report:false,attach:false};
+  if(t.type==="teaching") return {done:false,signed:false};
+  if(t.type==="lecture") return {count:0,list:[]};
+  return {done:false};
+}
+function deepMerge(base, over){
+  const out = Array.isArray(base) ? base.slice() : Object.assign({}, base);
+  for(const k in over){
+    const ov = over[k], bv = base[k];
+    if(ov && typeof ov==="object" && !Array.isArray(ov) && bv && typeof bv==="object" && !Array.isArray(bv)){
+      out[k] = deepMerge(bv, ov);
+    } else {
+      out[k] = ov;
+    }
+  }
+  return out;
+}
+function mergeState(obj){
+  const base = JSON.parse(JSON.stringify(DEFAULT_STATE));
+  const s = deepMerge(base, obj || {});
+  s.version = STATE_VERSION;
+  TRAINING.forEach(t=>{ if(!s.milestones[t.id]) s.milestones[t.id] = defMile(t); });
+  return s;
+}
+let state = load();
+function load(){
+  let raw = null; try{ raw = localStorage.getItem(LS_KEY); }catch(e){}
+  let parsed = null; if(raw){ try{ parsed = JSON.parse(raw); }catch(e){} }
+  // 升级保护：旧数据版本不一致时，先整体备份到独立键，避免被覆盖丢失
+  if(parsed && parsed.version !== STATE_VERSION){
+    try{ localStorage.setItem(LS_KEY + "_backup_v" + (parsed.version || "legacy") + "_" + Date.now(), raw); }catch(e){}
+  }
+  return mergeState(parsed);
+}
+function save(){ try{ state.version = STATE_VERSION; localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){} }
+function ensureMile(){ TRAINING.forEach(t=>{ if(!state.milestones[t.id]) state.milestones[t.id]=defMile(t); }); }
+
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const esc = s => String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid = () => Math.random().toString(36).slice(2,9);
+function toast(msg,type){ const t=document.createElement("div"); t.className="toast "+(type||""); t.textContent=msg; $("#toasts").appendChild(t); setTimeout(()=>t.remove(),2600); }
+function fmt(n){ return (Math.round(n*100)/100).toString(); }
+
+/* =====================================================================
+   主题
+   ===================================================================== */
+function applyTheme(){ document.documentElement.setAttribute("data-theme", state.theme); }
+function toggleTheme(){ state.theme = state.theme==="dark"?"light":"dark"; applyTheme(); save(); }
+
+/* =====================================================================
+   Module 1：学分进度与课程
+   ===================================================================== */
+function allCourses(){ return C.public.concat(C.required).concat(C.elective); }
+function selCredits(cat){
+  let sum=0;
+  (C[cat]||[]).forEach(c=>{ if(state.courses[c.code]) sum+=c.credit; });
+  (state.custom||[]).filter(c=>c.category===cat).forEach(c=>{ if(state.courses[c.id]) sum+=c.credit; });
+  return sum;
+}
+function trainingDoneCredits(){
+  return TRAINING.reduce((s,t)=>{
+    let done=false; const m=state.milestones[t.id]||defMile(t);
+    if(t.type==="toggle") done=!!m.done;
+    else if(t.type==="steps") done=(m.step||0)>=t.steps.length;
+    else if(t.type==="practice") done=(m.months||0)>=6;
+    else if(t.type==="teaching") done=!!m.done;
+    else if(t.type==="lecture") done=(m.count||0)>=20;
+    return s+(done?t.credit:0);
+  },0);
+}
+
+function renderSummary(){
+  const tot = selCredits("public")+selCredits("required")+selCredits("elective");
+  const train = trainingDoneCredits();
+  const cards = [
+    {k:"公共课",v:selCredits("public"),t:6,color:"var(--c-pub)",d:"最低 6 学分"},
+    {k:"必修课",v:selCredits("required"),t:8,color:"var(--c-req)",d:"最低 8 学分（含组内 ≥2 门）"},
+    {k:"选修课",v:selCredits("elective"),t:7,color:"var(--c-ele)",d:"补足课程学分至 21"},
+    {k:"培养环节",v:train,t:10,color:"var(--c-tra)",d:"共 10 学分（必修）"},
+  ];
+  $("#summary").innerHTML = cards.map(c=>{
+    const pct = Math.min(100, Math.round(c.v/c.t*100));
+    const done = c.v>=c.t;
+    return `<div class="sum"><div class="k">${c.k}<span class="tag">${done?"✓ 达标":"进行中"}</span></div>
+      <div class="v">${fmt(c.v)}<small> / ${c.t} 学分</small></div>
+      <div class="bar"><i style="width:${pct}%;background:${c.color}"></i></div><div class="d">${c.d}</div></div>`;
+  }).join("");
+
+  const total = tot + train;
+  const R=74, Cc=2*Math.PI*R, pct=Math.min(1,total/31);
+  $("#ring").innerHTML = `<svg width="180" height="180" viewBox="0 0 180 180">
+    <circle cx="90" cy="90" r="${R}" fill="none" stroke="var(--bg)" stroke-width="14"/>
+    <circle cx="90" cy="90" r="${R}" fill="none" stroke="${total>=31?"var(--ok)":"var(--brand)"}" stroke-width="14"
+      stroke-dasharray="${pct*Cc} ${Cc}" stroke-linecap="round"></circle></svg>
+    <div class="c"><div><b>${fmt(total)}</b><br><span>/ 31 学分</span></div></div>`;
+  const segs = [
+    {n:"公共课",v:selCredits("public"),c:"var(--c-pub)"},
+    {n:"必修课",v:selCredits("required"),c:"var(--c-req)"},
+    {n:"选修课",v:selCredits("elective"),c:"var(--c-ele)"},
+    {n:"培养环节",v:train,c:"var(--c-tra)"},
+  ];
+  $("#ringLegend").innerHTML = segs.map(s=>`<div class="row" style="margin:6px 0"><span style="width:12px;height:12px;border-radius:4px;background:${s.c}"></span><span style="flex:1">${s.n}</span><b>${fmt(s.v)} 学分</b></div>`).join("");
+}
+
+function courseRow(c, cat){
+  const checked = state.courses[c.code] ? "checked" : "";
+  return `<tr>
+    <td><input type="checkbox" class="sel" data-code="${esc(c.code)}" ${checked}></td>
+    <td class="mono">${esc(c.code)}</td>
+    <td>${esc(c.name)}</td>
+    <td class="cred">${c.credit}</td>
+    <td>${c.hours}</td>
+    <td>${esc(c.sem)}</td>
+    <td>${esc(c.college)}</td>
+    <td><span class="tag ${c.tag}">${esc(c.rule)}</span></td>
+  </tr>`;
+}
+function renderCourses(){
+  const kw = ($("#courseSearch").value||"").trim().toLowerCase();
+  const aiOnly = state._aiOnly;
+  const filter = c => {
+    if(kw && !(c.name+c.code+c.college).toLowerCase().includes(kw)) return false;
+    if(aiOnly && !AI_COLLEGES.includes(c.college)) return false;
+    return true;
+  };
+  const tbl = (cat, rows) => {
+    const filtered = rows.filter(filter);
+    if(!filtered.length) return "";
+    return `<h4 style="margin:16px 0 6px;color:var(--navy)">${CAT_META[cat].label} <span class="hint" style="font-weight:500;color:var(--muted);font-size:12px">已选 ${fmt(selCredits(cat))} / ${CAT_META[cat].target} 学分</span></h4>
+    <table><thead><tr><th style="width:34px"></th><th>代码</th><th>课程</th><th>学分</th><th>学时</th><th>学期</th><th>学院</th><th>要求</th></tr></thead>
+    <tbody>${filtered.map(c=>courseRow(c,cat)).join("")}</tbody></table>`;
+  };
+  let html = tbl("public", C.public) + tbl("required", C.required) + tbl("elective", C.elective);
+  // 自定义课程
+  const custom = (state.custom||[]).filter(filter);
+  if(custom.length){
+    html += `<h4 style="margin:16px 0 6px">自定义课程</h4><table><thead><tr><th style="width:34px"></th><th>代码</th><th>课程</th><th>学分</th><th>学时</th><th>学期</th><th>学院</th><th>要求</th><th></th></tr></thead><tbody>`+
+      custom.map(c=>{
+        const checked = state.courses[c.id]?"checked":"";
+        return `<tr><td><input type="checkbox" class="sel" data-code="${esc(c.id)}" ${checked}></td>
+        <td class="mono">自定义</td><td>${esc(c.name)}</td><td class="cred">${c.credit}</td><td>${c.hours||"—"}</td><td>${esc(c.sem)}</td><td>${esc(c.college)}</td><td><span class="tag opt">${esc(c.category==="public"?"公共":c.category==="required"?"必修":"选修")}</span></td>
+        <td><button class="btn sm danger" data-del-custom="${esc(c.id)}">删</button></td></tr>`;
+      }).join("")+"</tbody></table>";
+  }
+  if(!html) html = `<div class="empty">无匹配课程</div>`;
+  $("#courseTables").innerHTML = html;
+}
+
+function addCustomCourse(){
+  openModal(`<h3>添加自定义课程</h3>
+    <div class="mrow"><div class="field"><label>课程名称</label><input id="f_name"></div><div class="field"><label>学分</label><input id="f_credit" type="number" step="0.5" min="0.5" value="2"></div></div>
+    <div class="mrow"><div class="field"><label>学时</label><input id="f_hours" type="number" value="32"></div><div class="field"><label>学期</label><select id="f_sem"><option>秋季</option><option>春季</option><option>春秋季</option></select></div></div>
+    <div class="mrow"><div class="field"><label>学院</label><input id="f_college" value="信息学院"></div><div class="field"><label>类别</label><select id="f_cat"><option value="elective">选修课</option><option value="required">必修课</option><option value="public">公共课</option></select></div></div>
+    <div class="row mt"><button class="btn pri" id="f_save">保存</button><button class="btn" data-close>取消</button></div>`);
+  $("#f_save").onclick = ()=>{
+    const name = $("#f_name").value.trim();
+    if(!name){ toast("请输入课程名称","err"); return; }
+    state.custom.push({id:"c"+uid(), name, credit:parseFloat($("#f_credit").value)||0, hours:parseFloat($("#f_hours").value)||0, sem:$("#f_sem").value, college:$("#f_college").value.trim()||"自定义", category:$("#f_cat").value, rule:"自定义"});
+    state.courses[state.custom[state.custom.length-1].id] = true;
+    save(); closeModal(); renderAll();
+    toast("已添加并勾选课程","ok");
+  };
+}
+
+function timelineModal(){
+  openModal(`<h3>选课时间与提示（往年推测）</h3>
+    <table><thead><tr><th>学期</th><th>时间</th><th>说明</th></tr></thead><tbody>
+    <tr><td>秋季学期</td><td>8 月中下旬 ~ 9 月中旬</td><td>5 轮预选 + 1 轮退课（参照 2024 秋季 8/21–9/15）</td></tr>
+    <tr><td>春季学期</td><td>2 月中下旬</td><td>开学前 1–2 周（推测）</td></tr>
+    <tr><td>第三 / 夏季学期</td><td>5 月底 ~ 6 月</td><td>短学期通常 6–7 月开课（推测）</td></tr></tbody></table>
+    <div class="mt disc" style="border:none;padding:0">
+      <p>入口：<a href="http://yjsxk.xmu.edu.cn/" target="_blank">研究生选课系统 yjsxk.xmu.edu.cn</a>（经 <a href="https://ids.xmu.edu.cn/" target="_blank">统一身份认证</a>登录）。</p>
+      <p class="mt">提示：高级人工智能（信息学院 13058 / 航空航天学院 G10303800030）不可复选；工程素养训练为信息学院硕士必选。</p>
+    </div>
+    <div class="row mt"><button class="btn pri" data-close>知道了</button></div>`);
+}
+
+/* =====================================================================
+   Module 2：课表
+   ===================================================================== */
+function weekNumber(){
+  try{
+    const start = new Date(state.settings.startDate+"T00:00:00");
+    if(isNaN(start)) return null;
+    const diff = Math.floor((Date.now()-start.getTime())/(7*86400000));
+    return diff>=0 ? diff+1 : null;
+  }catch(e){ return null; }
+}
+function renderSchedule(){
+  const w = weekNumber();
+  $("#weekInfo").textContent = w ? `第 ${w} 周` : "（请在设置中填写学期起始日期）";
+  const free = $("#freeToggle").checked;
+  const covered = {};
+  state.schedule.forEach(s=>{ for(let p=s.start;p<=s.end;p++){ if(p!==s.start) covered[s.day+"-"+p]=true; } });
+  let cells = `<div class="hdr" style="grid-row:1;grid-column:1">节/时间</div>`;
+  DAYS.forEach((d,i)=> cells += `<div class="hdr" style="grid-row:1;grid-column:${i+2}">${d}</div>`);
+  for(let p=0;p<11;p++){
+    cells += `<div class="tcol" style="grid-row:${p+2};grid-column:1">${p+1}<br>${PERIOD_TIMES[p]}</div>`;
+    for(let d=0;d<7;d++){
+      const blk = state.schedule.find(s=>s.day===d && s.start===p);
+      if(blk){
+        const span = blk.end-blik.start+1;
+        const color = blk.color || "var(--brand)";
+        cells += `<div class="cell" style="grid-row:${p+2} / span ${span};grid-column:${d+2};display:flex;padding:0;border:none">
+          <div class="course-block" data-id="${blk.id}" style="--c:${color};width:100%" title="点击编辑">
+            <div class="nm">${esc(blk.name)}</div><div class="rm">${esc(blk.room||"")}</div>
+          </div></div>`;
+      } else if(!covered[d+"-"+p]){
+        let cls = "cell";
+        if(free){ cls += (p<4 ? " free-morning" : (p<8 ? " free-noon" : "")); }
+        cells += `<div class="${cls}" style="grid-row:${p+2};grid-column:${d+2}"></div>`;
+      }
+    }
+  }
+  $("#timetable").innerHTML = cells;
+  $("#ttLegend").innerHTML = "点击课程块可编辑；颜色在编辑器中设置。";
+}
+function scheduleBlock(id){ return state.schedule.find(s=>s.id===id); }
+function blockModal(id){
+  const b = id ? scheduleBlock(id) : null;
+  openModal(`<h3>${b?"编辑":"添加"}课程时段</h3>
+    <div class="field"><label>课程名称</label><input id="b_name" value="${b?esc(b.name):""}"></div>
+    <div class="mrow">
+      <div class="field"><label>星期</label><select id="b_day">${DAYS.map((d,i)=>`<option value="${i}" ${b&&b.day===i?"selected":""}>${d}</option>`).join("")}</select></div>
+      <div class="field"><label>开始节次</label><select id="b_start">${PERIOD_TIMES.map((_,i)=>`<option value="${i}" ${b&&b.start===i?"selected":""}>第 ${i+1} 节</option>`).join("")}</select></div>
+      <div class="field"><label>结束节次</label><select id="b_end">${PERIOD_TIMES.map((_,i)=>`<option value="${i}" ${b&&b.end===i?"selected":""}>第 ${i+1} 节</option>`).join("")}</select></div>
+    </div>
+    <div class="mrow">
+      <div class="field"><label>教室（可选）</label><input id="b_room" value="${b?esc(b.room||""):""}"></div>
+      <div class="field"><label>颜色</label><select id="b_color">
+        ${["蓝","绿","金","红","紫","青","橙","灰"].map((n,i)=>`<option value="${["var(--brand)","#2e9e6b","#c9a227","#b3452f","#7c5cbf","#0ea5b7","#e0765a","#64748b"][i]}">${n}</option>`).join("")}
+      </select></div>
+    </div>
+    <div class="row mt"><button class="btn pri" id="b_save">保存</button>${b?`<button class="btn danger" id="b_del">删除</button>`:""}<button class="btn" data-close>取消</button></div>`);
+  $("#b_save").onclick = ()=>{
+    const name = $("#b_name").value.trim();
+    if(!name){ toast("请输入课程名称","err"); return; }
+    const start = parseInt($("#b_start").value), end = parseInt($("#b_end").value);
+    if(end<start){ toast("结束节次不能早于开始","err"); return; }
+    const obj = { id: b?b.id:uid(), name, day:parseInt($("#b_day").value), start, end, room:$("#b_room").value.trim(), color:$("#b_color").value };
+    if(b){ Object.assign(b, obj); } else { state.schedule.push(obj); }
+    save(); closeModal(); renderSchedule();
+    toast("已保存课表","ok");
+  };
+  if(b) $("#b_del").onclick = ()=>{ state.schedule = state.schedule.filter(s=>s.id!==id); save(); closeModal(); renderSchedule(); toast("已删除","ok"); };
+}
+function exportICS(){
+  if(!state.schedule.length){ toast("课表为空","err"); return; }
+  const lines = ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//XMU AI Dashboard//CN","CALSCALE:GREGORIAN"];
+  state.schedule.forEach(s=>{
+    const dow = ["MO","TU","WE","TH","FR","SA","SU"][s.day];
+    const st = PERIOD_TIMES[s.start].split(":"), en = PERIOD_TIMES[s.end].split(":");
+    const sh = parseInt(st[0])+Math.floor((parseInt(st[1])+50)/60), sm = (parseInt(st[1])+50)%60;
+    const eh = parseInt(en[0])+Math.floor((parseInt(en[1])+50)/60), em = (parseInt(en[1])+50)%60;
+    const dt = new Date(state.settings.startDate+"T00:00:00");
+    dt.setDate(dt.getDate() + s.day + (7-((dt.getDay()+6)%7)%7)); // 粗定位到最近对应星期
+    const ymd = d => d.toISOString().slice(0,10).replace(/-/g,"");
+    lines.push("BEGIN:VEVENT",`UID:${s.id}@xmu`, `DTSTART:${ymd(dt)}T${String(sh).padStart(2,"0")}${String(sm).padStart(2,"0")}00`, `DTEND:${ymd(dt)}T${String(eh).padStart(2,"0")}${String(em).padStart(2,"0")}00`, `RRULE:FREQ=WEEKLY;BYDAY=${dow}`, `SUMMARY:${s.name}`, s.room?`LOCATION:${s.room}`:"", "END:VEVENT");
+  });
+  lines.push("END:VCALENDAR");
+  const blob = new Blob([lines.join("\r\n")],{type:"text/calendar"});
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "xmu-schedule.ics"; a.click();
+  toast("已导出 .ics","ok");
+}
+function visionModal(){
+  openModal(`<h3>截图识别导入课表</h3>
+    <div class="field"><label>上传课表截图（发送给视觉大模型）</label><input type="file" id="v_file" accept="image/*"></div>
+    <div class="field"><label>补充说明（可选）</label><textarea id="v_prompt" placeholder="例如：识别课表中的课程名、星期、第几节、教室"></textarea></div>
+    <div class="disc" style="border:none;padding:0">需在「设置」中配置视觉模型（API Key + Base URL + 模型名）。识别结果以 JSON 形式返回：<code>[{name, day, start, end, room}]</code>，day 为 0–6（周一=0），start/end 为节次 0–10。</div>
+    <div class="row mt"><button class="btn pri" id="v_go">开始识别</button><button class="btn" data-close>取消</button></div>`);
+  $("#v_go").onclick = async ()=>{
+    const f = $("#v_file").files[0];
+    if(!f){ toast("请先选择截图","err"); return; }
+    const {llmProvider,llmBaseUrl,llmApiKey,llmModel} = state.settings;
+    if(!llmApiKey || !llmBaseUrl || !llmModel){ toast("请先在「设置」中配置视觉模型","err"); return; }
+    toast("识别中…");
+    try{
+      const b64 = await fileToBase64(f);
+      const prompt = ($("#v_prompt").value.trim() || "识别课表") + "\n请只返回 JSON 数组，元素为 {name,day,start,end,room}，day 0-6(周一=0)，start/end 为节次 0-10。不要多余文字。";
+      const res = await callLLM(b64, prompt);
+      const arr = JSON.parse(extractJSON(res));
+      if(!Array.isArray(arr)) throw new Error("结果非数组");
+      arr.forEach(x=>{ state.schedule.push({id:uid(), name:x.name||"课程", day:+x.day||0, start:+x.start||0, end:+(x.end??x.start)||0, room:x.room||"", color:"var(--brand)"}); });
+      save(); closeModal(); renderSchedule();
+      toast(`已导入 ${arr.length} 门课`,"ok");
+    }catch(e){ toast("识别失败："+e.message,"err"); }
+  };
+}
+function fileToBase64(file){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result.split(",")[1]); r.onerror=()=>rej(new Error("读取失败")); r.readAsDataURL(file); }); }
+function extractJSON(s){ const a=s.indexOf("["), b=s.lastIndexOf("]"); if(a>=0&&b>a) return s.slice(a,b+1); return s; }
+async function callLLM(imgB64, prompt){
+  const {llmBaseUrl,llmApiKey,llmModel} = state.settings;
+  const url = llmBaseUrl.replace(/\/+$/,"");
+  const body = {
+    model: llmModel,
+    messages:[{role:"user",content:[
+      {type:"text",text:prompt},
+      {type:"image_url",image_url:{url:`data:image/png;base64,${imgB64}`}},
+    ]}],
+    temperature:0,
+  };
+  const r = await fetch(url+"/chat/completions", {method:"POST", headers:{"Content-Type":"application/json","Authorization":"Bearer "+llmApiKey}, body:JSON.stringify(body)});
+  if(!r.ok){ const t = await r.text(); throw new Error(t.slice(0,200)); }
+  const j = await r.json();
+  return j.choices[0].message.content;
+}
+
+/* =====================================================================
+   Module 3：培养环节
+   ===================================================================== */
+function mileDone(t){ const m=state.milestones[t.id]||defMile(t); if(t.type==="lecture") return (m.count||0)>=20; if(t.type==="steps") return (m.step||0)>=t.steps.length; if(t.type==="practice") return (m.months||0)>=6; return !!m.done; }
+function renderMilestones(){
+  $("#milestones").innerHTML = TRAINING.map(t=>{
+    const m = state.milestones[t.id]||defMile(t);
+    let body = "";
+    if(t.type==="toggle"){
+      body = `<label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" class="mile-toggle" data-id="${t.id}" ${m.done?"checked":""} style="width:18px;height:18px"> 已完成并过考</label>`;
+    } else if(t.type==="steps"){
+      body = `<div class="steps">${t.steps.map((s,i)=>`<div class="step ${i<=(m.step||0)-1?"on":""}" data-step="${t.id}:${i}">${s}</div>`).join("")}</div>`;
+    } else if(t.type==="practice"){
+      const pct = Math.min(100, Math.round((m.months||0)/6*100));
+      body = `<div class="counter"><div><div class="big">${m.months||0}<span style="font-size:14px;color:var(--muted)"> / 6 月</span></div><div class="lbl">实践时长</div></div><div class="meter"><i style="width:${pct}%;background:var(--accent)"></i></div></div>
+        <div class="row mt">
+          <button class="btn sm" data-prac="-1">− 1 月</button><button class="btn sm" data-prac="1">＋ 1 月</button>
+          <label style="margin-left:8px"><input type="checkbox" class="prac-report" data-id="${t.id}" ${m.report?"checked":""}> 已提交 ≥5000 字报告</label>
+          <label><input type="checkbox" class="prac-attach" data-id="${t.id}" ${m.attach?"checked":""}> 成果/专利折算</label>
+        </div>`;
+    } else if(t.type==="teaching"){
+      body = `<label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" class="mile-toggle" data-id="${t.id}" ${m.done?"checked":""} style="width:18px;height:18px"> 已完成教学实践</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:6px"><input type="checkbox" class="teach-sign" data-id="${t.id}" ${m.signed?"checked":""} style="width:18px;height:18px"> 导师已签字确认</label>`;
+    } else if(t.type==="lecture"){
+      body = `<div class="counter"><div><div class="big">${m.count||0}<span style="font-size:14px;color:var(--muted)"> / 20 场</span></div><div class="lbl">已参加讲座</div></div><div class="meter"><i style="width:${Math.min(100,(m.count||0)/20*100)}%;background:var(--blue)"></i></div></div>
+        <div class="row mt"><button class="btn sm pri" data-action="addLecture">＋ 记录讲座</button></div>
+        <div id="lectureList">${(m.list||[]).map(l=>`<div class="row" style="margin-top:6px;font-size:12.5px"><span style="flex:1">${esc(l.title)} <span class="muted" style="color:var(--muted)">· ${esc(l.date)}</span></span><span class="tag ${l.summary?"opt":"must"}">${l.summary?"已写总结":"待总结"}</span><span class="tag ${l.signed?"opt":"must"}">${l.signed?"已签字":"待签字"}</span><button class="btn sm danger" data-del-lecture="${esc(l.id)}">删</button></div>`).join("")}</div>`;
+    }
+    const done = mileDone(t);
+    return `<div class="mile">
+      <div class="top"><div><div class="nm">${t.name}</div><div class="due">${t.due}</div></div><span class="cr" style="${done?"color:var(--ok)":""}">${done?"✓ 完成":"未完成"} · ${t.credit} 学分</span></div>
+      ${body}</div>`;
+  }).join("");
+}
+
+/* =====================================================================
+   Module 4：科研与毕业
+   ===================================================================== */
+function renderThesis(){
+  const papers = state.papers||[];
+  $("#paperList").innerHTML = papers.length ? papers.map(p=>`<div class="row" style="padding:8px 0;border-bottom:1px solid var(--line)">
+    <span style="flex:1"><b>${esc(p.title)}</b><br><span class="muted" style="color:var(--muted);font-size:12px">${esc(p.venue)} · ${esc(p.venueType)}</span></span>
+    <span class="tag ${p.status==="录用"?"opt":p.status==="投稿中"?"group":"must"}">${esc(p.status)}</span>
+    <button class="btn sm" data-edit-paper="${esc(p.id)}">编辑</button>
+    <button class="btn sm danger" data-del-paper="${esc(p.id)}">删</button></div>`).join("") : `<div class="empty">暂无记录，点击上方添加论文/成果</div>`;
+  $("#paperSteps").innerHTML = PAPER_STEPS.map((s,i)=>`<div class="step ${i<=(state.paperStep||0)?"on":""}" data-pstep="${i}" style="margin:4px 0;cursor:pointer;text-align:left;padding:9px 12px;border-radius:9px;border:1px solid var(--line)">${i<(state.paperStep||0)?"✓ ":(i===state.paperStep?"● ":"○ ")}${s}</div>`).join("");
+  $("#thesisPipe").innerHTML = THESIS_PIPE.map(p=>{ const done = state.thesis[p.id]; return `<div class="pipe-item ${done?"done":""}"><div style="flex:1"><div class="pt">${p.name}</div><div class="pd">${p.desc}</div></div><label style="cursor:pointer"><input type="checkbox" class="pipe-toggle" data-id="${p.id}" ${done?"checked":""} style="width:18px;height:18px"> 完成</label></div>`; }).join("");
+  $("#thesisRules").innerHTML = `<ul style="margin-left:18px;font-size:13.5px">
+    <li>开题通过至答辩 <b>≥6 个月</b></li>
+    <li>预答辩在正式答辩 <b>前 3 个月</b>，有不合格率</li>
+    <li>查重（去除本人已发表文献复制比）<b>&lt;10%</b></li>
+    <li>成果类型：专题研究论文 / 调研报告 / 案例分析 / 产品设计 / 方案设计</li>
+    <li>小论文、专利投稿须<b>导师前置审核</b></li></ul>`;
+  $("#paperRule").innerHTML = "<b>规则：</b>科研论著、专利、论文投稿等成果实行导师前置审核制度，未经导师审核不予认可。";
+}
+function paperModal(id){
+  const p = id ? state.papers.find(x=>x.id===id) : null;
+  openModal(`<h3>${p?"编辑":"添加"}论文/成果</h3>
+    <div class="field"><label>标题</label><input id="p_title" value="${p?esc(p.title):""}"></div>
+    <div class="mrow"><div class="field"><label>期刊/会议（CCF 等级等）</label><input id="p_venue" value="${p?esc(p.venue):""}"></div><div class="field"><label>级别</label><select id="p_type"><option>CCF-A</option><option>CCF-B</option><option>CCF-C</option><option>SCI/EI</option><option>专利</option><option>其他</option></select></div></div>
+    <div class="mrow"><div class="field"><label>状态</label><select id="p_status"><option>选题/实验</option><option>初稿</option><option>投稿中</option><option>返修中</option><option>录用</option></select></div></div>
+    <div class="row mt"><button class="btn pri" id="p_save">保存</button><button class="btn" data-close>取消</button></div>`);
+  if(p){ $("#p_type").value=p.venueType; $("#p_status").value=p.status; }
+  $("#p_save").onclick = ()=>{
+    const title=$("#p_title").value.trim(); if(!title){toast("请输入标题","err");return;}
+    const obj={id:p?p.id:uid(), title, venue:$("#p_venue").value.trim(), venueType:$("#p_type").value, status:$("#p_status").value};
+    if(p) Object.assign(p,obj); else state.papers.push(obj);
+    save(); closeModal(); renderThesis(); toast("已保存","ok");
+  };
+}
+function lectureModal(){
+  openModal(`<h3>记录参加的讲座</h3>
+    <div class="field"><label>讲座标题</label><input id="l_title"></div>
+    <div class="mrow"><div class="field"><label>主讲人</label><input id="l_speaker"></div><div class="field"><label>日期</label><input id="l_date" type="date"></div></div>
+    <div class="field"><label>类别</label><select id="l_cat"><option>学科前沿</option><option>行业动态</option><option>前沿技术</option><option>其他</option></select></div>
+    <div class="field"><label>总结状态</label><select id="l_sum"><option value="0">未写总结（需 1000–2000 字）</option><option value="1">已写总结</option></select></div>
+    <div class="field"><label>辅导员签字</label><select id="l_sign"><option value="0">未签字</option><option value="1">已签字</option></select></div>
+    <div class="row mt"><button class="btn pri" id="l_save">保存</button><button class="btn" data-close>取消</button></div>`);
+  $("#l_save").onclick = ()=>{
+    const title=$("#l_title").value.trim(); if(!title){toast("请输入标题","err");return;}
+    const m=state.milestones.lecture; m.list.push({id:uid(),title,speaker:$("#l_speaker").value.trim(),date:$("#l_date").value,category:$("#l_cat").value,summary:$("#l_sum").value==="1",signed:$("#l_sign").value==="1"});
+    m.count = (m.list||[]).length;
+    save(); closeModal(); renderAll(); toast("已记录","ok");
+  };
+}
+
+/* =====================================================================
+   设置 / 导出导入 / Gist
+   ===================================================================== */
+function settingsModal(){
+  const s = state.settings;
+  openModal(`<h3>设置</h3>
+    <div class="field"><label>学期起始日期（用于计算第几周）</label><input id="s_start" type="date" value="${esc(s.startDate)}"></div>
+    <h4 style="margin:14px 0 6px;color:var(--navy)">视觉模型（截图识别课表用）</h4>
+    <div class="mrow"><div class="field"><label>Provider</label><select id="s_provider"><option>deepseek</option><option>openai</option><option>gemini</option><option>自定义</option></select></div><div class="field"><label>模型名</label><input id="s_model" placeholder="如 deepseek-vl / gpt-4o" value="${esc(s.llmModel)}"></div></div>
+    <div class="field"><label>Base URL（OpenAI 兼容 /chat/completions 前缀）</label><input id="s_base" placeholder="https://api.deepseek.com/v1" value="${esc(s.llmBaseUrl)}"></div>
+    <div class="field"><label>API Key</label><input id="s_key" type="password" value="${esc(s.llmApiKey)}"></div>
+    <h4 style="margin:14px 0 6px;color:var(--navy)">GitHub Gist 云同步</h4>
+    <div class="mrow"><div class="field"><label>Personal Access Token</label><input id="s_token" type="password" value="${esc(s.gistToken)}"></div><div class="field"><label>Gist ID（留空则首次保存时自动创建）</label><input id="s_gid" value="${esc(s.gistId)}"></div></div>
+    <div class="row mt"><button class="btn pri" id="s_save">保存设置</button><button class="btn" data-close>取消</button></div>`);
+  $("#s_provider").value = s.llmProvider;
+  $("#s_save").onclick = ()=>{ Object.assign(state.settings,{startDate:$("#s_start").value,llmProvider:$("#s_provider").value,llmModel:$("#s_model").value.trim(),llmBaseUrl:$("#s_base").value.trim(),llmApiKey:$("#s_key").value.trim(),gistToken:$("#s_token").value.trim(),gistId:$("#s_gid").value.trim()}); save(); closeModal(); renderSchedule(); toast("设置已保存","ok"); };
+}
+
+function exportJSON(){
+  const blob = new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="xmu-ai-dashboard.json"; a.click(); toast("已导出 JSON","ok");
+}
+function importJSON(file){
+  const r=new FileReader(); r.onload=()=>{ try{ state=mergeState(JSON.parse(r.result)); save(); applyTheme(); renderAll(); toast("导入成功","ok"); }catch(e){ toast("导入失败：文件格式错误","err"); } };
+  r.readAsText(file);
+}
+async function gistSync(){
+  const {gistToken,gistId}=state.settings;
+  if(!gistToken){ toast("请先在设置中填写 Gist Token","err"); return; }
+  const headers={Authorization:"Bearer "+gistToken,"Accept":"application/vnd.github+json"};
+  try{
+    const content = JSON.stringify(state,null,2);
+    let id = gistId;
+    if(id){
+      // 更新
+      const r=await fetch("https://api.github.com/gists/"+id,{method:"PATCH",headers:{...headers,"Content-Type":"application/json"},body:JSON.stringify({files:{"xmu-ai-dashboard.json":{content}}})});
+      if(!r.ok) throw new Error((await r.text()).slice(0,200));
+      toast("已同步到 Gist","ok");
+    } else {
+      // 创建
+      const r=await fetch("https://api.github.com/gists",{method:"POST",headers:{...headers,"Content-Type":"application/json"},body:JSON.stringify({description:"XMU AI Dashboard backup",public:false,files:{"xmu-ai-dashboard.json":{content}}})});
+      if(!r.ok) throw new Error((await r.text()).slice(0,200));
+      const j=await r.json(); state.settings.gistId=j.id; save(); toast("已创建 Gist 并同步（ID 已保存）","ok");
+    }
+  }catch(e){ toast("Gist 同步失败："+e.message,"err"); }
+}
+async function gistLoad(){
+  const {gistToken,gistId}=state.settings;
+  if(!gistToken||!gistId){ toast("需先填写 Token 与 Gist ID","err"); return; }
+  try{
+    const r=await fetch("https://api.github.com/gists/"+gistId,{headers:{Authorization:"Bearer "+gistToken,"Accept":"application/vnd.github+json"}});
+    if(!r.ok) throw new Error((await r.text()).slice(0,200));
+    const j=await r.json();
+    const f=j.files["xmu-ai-dashboard.json"]; if(!f){ toast("Gist 中无备份文件","err"); return; }
+    state=mergeState(JSON.parse(f.content)); save(); applyTheme(); renderAll(); toast("已从 Gist 载入","ok");
+  }catch(e){ toast("载入失败："+e.message,"err"); }
+}
+
+/* =====================================================================
+   Modal / 事件绑定
+   ===================================================================== */
+function openModal(html){ $("#modalBody").innerHTML=html; $("#overlay").classList.add("open"); }
+function closeModal(){ $("#overlay").classList.remove("open"); $("#modalBody").innerHTML=""; }
+
+function bindEvents(){
+  // 主题
+  $("#themeBtn").onclick = toggleTheme;
+  // tabs
+  $$(".tab").forEach(t=>t.onclick=()=>{ $$(".tab").forEach(x=>x.classList.remove("active")); t.classList.add("active"); $$(".panel").forEach(p=>p.classList.remove("active")); $("#"+t.dataset.tab).classList.add("active"); });
+  // topbar
+  document.querySelector('[data-action="export"]').onclick = exportJSON;
+  document.querySelector('[data-action="import"]').onclick = ()=>$("#fileImport").click();
+  $("#fileImport").onchange = e=>{ if(e.target.files[0]) importJSON(e.target.files[0]); e.target.value=""; };
+  document.querySelector('[data-action="gist"]').onclick = async ()=>{ await gistSync(); };
+  document.querySelector('[data-action="settings"]').onclick = settingsModal;
+  // overlay close
+  $("#overlay").addEventListener("click",e=>{ if(e.target.id==="overlay") closeModal(); });
+  // 课程勾选（事件委托）
+  document.addEventListener("change",e=>{
+    const el=e.target;
+    if(el.classList.contains("sel")){ if(el.checked) state.courses[el.dataset.code]=true; else delete state.courses[el.dataset.code]; save(); renderSummary(); }
+    else if(el.classList.contains("mile-toggle")){ state.milestones[el.dataset.id].done = el.checked; save(); renderAll(); }
+    else if(el.classList.contains("prac-report")){ state.milestones[el.dataset.id].report = el.checked; save(); renderMilestones(); }
+    else if(el.classList.contains("prac-attach")){ state.milestones[el.dataset.id].attach = el.checked; save(); renderMilestones(); }
+    else if(el.classList.contains("teach-sign")){ state.milestones[el.dataset.id].signed = el.checked; save(); renderMilestones(); }
+    else if(el.classList.contains("pipe-toggle")){ state.thesis[el.dataset.id]=el.checked; save(); renderThesis(); }
+  });
+  // 课程搜索 / 过滤
+  $("#courseSearch").addEventListener("input",()=>renderCourses());
+  $("#filterAI").onclick = ()=>{ state._aiOnly=!state._aiOnly; $("#filterAI").style.opacity=state._aiOnly?"1":".6"; renderCourses(); };
+  $("#filterAI").style.opacity = state._aiOnly?"1":".6";
+  // 委托点击
+  document.addEventListener("click",e=>{
+    const el=e.target.closest("[data-action],[data-del-custom],[data-del-paper],[data-edit-paper],[data-del-lecture],[data-step],[data-pstep],[data-prac]");
+    if(!el) return;
+    if(el.dataset.action){
+      const a=el.dataset.action;
+      if(a==="addCourse") addCustomCourse();
+      else if(a==="timeline") timelineModal();
+      else if(a==="addBlock") blockModal();
+      else if(a==="ics") exportICS();
+      else if(a==="vision") visionModal();
+      else if(a==="addLecture") lectureModal();
+      else if(a==="addPaper") paperModal();
+    }
+    else if(el.dataset.delCustom){ delete state.courses[el.dataset.delCustom]; state.custom=state.custom.filter(c=>c.id!==el.dataset.delCustom); save(); renderAll(); }
+    else if(el.dataset.delPaper){ state.papers=state.papers.filter(p=>p.id!==el.dataset.delPaper); save(); renderThesis(); }
+    else if(el.dataset.editPaper){ paperModal(el.dataset.editPaper); }
+    else if(el.dataset.delLecture){ const m=state.milestones.lecture; m.list=m.list.filter(l=>l.id!==el.dataset.delLecture); m.count=m.list.length; save(); renderMilestones(); }
+    else if(el.dataset.step){ const [id,i]=el.dataset.step.split(":"); state.milestones[id].step=parseInt(i)+1; save(); renderMilestones(); }
+    else if(el.dataset.pstep!==undefined){ state.paperStep=parseInt(el.dataset.pstep); save(); renderThesis(); }
+    else if(el.dataset.prac){ const m=state.milestones.practice; m.months=Math.max(0,Math.min(6,(m.months||0)+parseInt(el.dataset.prac))); save(); renderMilestones(); }
+    else if(el.classList.contains("course-block")){ blockModal(el.dataset.id); }
+  });
+  // 关闭按钮
+  document.addEventListener("click",e=>{ if(e.target.closest("[data-close]")) closeModal(); });
+  // 空闲时段高亮
+  $("#freeToggle").onchange = ()=>renderSchedule();
+}
+
+function renderAll(){
+  applyTheme();
+  renderSummary(); renderCourses(); renderSchedule(); renderMilestones(); renderThesis();
+}
+
+ensureMile();
+renderAll();
+bindEvents();
+</script>
+</body>
+</html>
