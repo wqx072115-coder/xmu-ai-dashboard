@@ -174,7 +174,8 @@ tbody tr:hover{background:var(--bg)}
   <div class="brand"><div class="logo">厦</div><div>XMU AI 毕业仪表盘<small>人工智能专硕 085410 · 2026级</small></div></div>
   <button class="tbtn" data-action="export"><span class="icon">⬇</span>导出</button>
   <button class="tbtn" data-action="import"><span class="icon">⬆</span>导入</button>
-  <button class="tbtn" data-action="gist"><span class="icon">☁</span>Gist</button>
+  <button class="tbtn" data-action="gistUp"><span class="icon">☁</span>Gist 上传</button>
+  <button class="tbtn" data-action="gistDown"><span class="icon">☁</span>Gist 下载</button>
   <button class="tbtn" data-action="settings"><span class="icon">⚙</span>设置</button>
   <button class="tbtn" id="themeBtn"><span class="icon">◐</span>主题</button>
   <input type="file" id="fileImport" accept="application/json" style="display:none">
@@ -795,50 +796,85 @@ function settingsModal(){
     <div class="field"><label>Base URL（OpenAI 兼容 /chat/completions 前缀）</label><input id="s_base" placeholder="https://api.deepseek.com/v1" value="${esc(s.llmBaseUrl)}"></div>
     <div class="field"><label>API Key</label><input id="s_key" type="password" value="${esc(s.llmApiKey)}"></div>
     <h4 style="margin:14px 0 6px;color:var(--navy)">GitHub Gist 云同步</h4>
-    <div class="mrow"><div class="field"><label>Personal Access Token</label><input id="s_token" type="password" value="${esc(s.gistToken)}"></div><div class="field"><label>Gist ID（留空则首次保存时自动创建）</label><input id="s_gid" value="${esc(s.gistId)}"></div></div>
+    <div class="mrow"><div class="field"><label>Personal Access Token</label><input id="s_token" type="password" value="${esc(s.gistToken)}"><div class="help">仅本机调用 GitHub API 用，<b>绝不</b>写入导出数据或上传云端。经典 Token 需勾选 gist 权限；细粒度 Token 需授予 Gists 访问。</div></div><div class="field"><label>Gist ID（留空则上传时自动创建私有 Gist）</label><input id="s_gid" value="${esc(s.gistId)}"></div></div>
     <div class="row mt"><button class="btn pri" id="s_save">保存设置</button><button class="btn" data-close>取消</button></div>`);
   $("#s_provider").value = s.llmProvider;
   $("#s_save").onclick = ()=>{ Object.assign(state.settings,{startDate:$("#s_start").value,llmProvider:$("#s_provider").value,llmModel:$("#s_model").value.trim(),llmBaseUrl:$("#s_base").value.trim(),llmApiKey:$("#s_key").value.trim(),gistToken:$("#s_token").value.trim(),gistId:$("#s_gid").value.trim()}); save(); closeModal(); renderSchedule(); toast("设置已保存","ok"); };
 }
 
+/* ---- 导出 / 导入 与云同步（密钥绝不上传） ---- */
+function sanitize(obj){
+  const s = JSON.parse(JSON.stringify(obj));
+  if(s.settings){
+    delete s.settings.gistToken;   // 绝不外传
+    delete s.settings.llmApiKey;   // 绝不外传
+  }
+  return s;
+}
+// 合并外部数据（导入 / 云端载入）：若文件不含密钥，则保留本地当前密钥，避免重填
+function applyExternal(obj){
+  const cur = (state && state.settings) ? state.settings : {};
+  const s = mergeState(obj);
+  if(!s.settings.llmApiKey && cur.llmApiKey) s.settings.llmApiKey = cur.llmApiKey;
+  if(!s.settings.gistToken && cur.gistToken) s.settings.gistToken = cur.gistToken;
+  if(!s.settings.llmBaseUrl && cur.llmBaseUrl) s.settings.llmBaseUrl = cur.llmBaseUrl;
+  return s;
+}
 function exportJSON(){
-  const blob = new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
-  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="xmu-ai-dashboard.json"; a.click(); toast("已导出 JSON","ok");
+  const blob = new Blob([JSON.stringify(sanitize(state),null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="xmu-ai-dashboard.json"; a.click();
+  toast("已导出 JSON（已自动剔除 Token / API Key）","ok");
 }
 function importJSON(file){
-  const r=new FileReader(); r.onload=()=>{ try{ state=mergeState(JSON.parse(r.result)); save(); applyTheme(); renderAll(); toast("导入成功","ok"); }catch(e){ toast("导入失败：文件格式错误","err"); } };
+  const r=new FileReader(); r.onload=()=>{ try{ state=applyExternal(JSON.parse(r.result)); save(); applyTheme(); renderAll(); toast("导入成功","ok"); }catch(e){ toast("导入失败：文件格式错误","err"); } };
   r.readAsText(file);
+}
+function ghErr(code){
+  if(code===401) return "Token 无效或已过期，请重新生成";
+  if(code===403) return "权限不足：经典 Token 需勾选 gist 权限，或细粒度 Token 需授予 Gists 访问";
+  if(code===404) return "Gist 不存在或无访问权限（Token 缺少 gist 权限时也会返回 404）";
+  if(code===422) return "请求不被接受（内容过大等）";
+  return "HTTP " + code;
 }
 async function gistSync(){
   const {gistToken,gistId}=state.settings;
   if(!gistToken){ toast("请先在设置中填写 Gist Token","err"); return; }
   const headers={Authorization:"Bearer "+gistToken,"Accept":"application/vnd.github+json"};
   try{
-    const content = JSON.stringify(state,null,2);
-    let id = gistId;
-    if(id){
-      // 更新
-      const r=await fetch("https://api.github.com/gists/"+id,{method:"PATCH",headers:{...headers,"Content-Type":"application/json"},body:JSON.stringify({files:{"xmu-ai-dashboard.json":{content}}})});
-      if(!r.ok) throw new Error((await r.text()).slice(0,200));
-      toast("已同步到 Gist","ok");
+    // 只上传业务数据，绝不包含 Token / API Key
+    const content = JSON.stringify(sanitize(state),null,2);
+    let resp;
+    if(gistId){
+      resp = await fetch("https://api.github.com/gists/"+gistId,{method:"PATCH",headers:{...headers,"Content-Type":"application/json"},body:JSON.stringify({files:{"xmu-ai-dashboard.json":{content}}})});
     } else {
-      // 创建
-      const r=await fetch("https://api.github.com/gists",{method:"POST",headers:{...headers,"Content-Type":"application/json"},body:JSON.stringify({description:"XMU AI Dashboard backup",public:false,files:{"xmu-ai-dashboard.json":{content}}})});
-      if(!r.ok) throw new Error((await r.text()).slice(0,200));
-      const j=await r.json(); state.settings.gistId=j.id; save(); toast("已创建 Gist 并同步（ID 已保存）","ok");
+      // 固定创建「私有（Secret）Gist」
+      resp = await fetch("https://api.github.com/gists",{method:"POST",headers:{...headers,"Content-Type":"application/json"},body:JSON.stringify({description:"XMU AI Dashboard data",public:false,files:{"xmu-ai-dashboard.json":{content}}})});
     }
-  }catch(e){ toast("Gist 同步失败："+e.message,"err"); }
+    if(!resp.ok){
+      const t = await resp.text().catch(()=>"");
+      toast("同步失败 " + ghErr(resp.status) + (t.includes("rate")?"（限流，稍后再试）":""),"err");
+      return;
+    }
+    const j = await resp.json();
+    state.settings.gistId = j.id; save();
+    toast(gistId ? "已更新到私有 Gist" : "已创建私有 Gist 并保存 ID","ok");
+  }catch(e){
+    toast("同步失败：" + (e.name==="TypeError" ? "网络/CORS 被拦截——本地 file:// 打开可能受限，建议部署到 https（GitHub Pages）再同步" : e.message),"err");
+  }
 }
 async function gistLoad(){
   const {gistToken,gistId}=state.settings;
   if(!gistToken||!gistId){ toast("需先填写 Token 与 Gist ID","err"); return; }
   try{
     const r=await fetch("https://api.github.com/gists/"+gistId,{headers:{Authorization:"Bearer "+gistToken,"Accept":"application/vnd.github+json"}});
-    if(!r.ok) throw new Error((await r.text()).slice(0,200));
+    if(!r.ok){ const t=await r.text().catch(()=>""); toast("载入失败 " + ghErr(r.status) + (t.includes("rate")?"（限流）":""),"err"); return; }
     const j=await r.json();
     const f=j.files["xmu-ai-dashboard.json"]; if(!f){ toast("Gist 中无备份文件","err"); return; }
-    state=mergeState(JSON.parse(f.content)); save(); applyTheme(); renderAll(); toast("已从 Gist 载入","ok");
-  }catch(e){ toast("载入失败："+e.message,"err"); }
+    state = applyExternal(JSON.parse(f.content)); save(); applyTheme(); renderAll();
+    toast("已从 Gist 载入（本地密钥已保留）","ok");
+  }catch(e){
+    toast("载入失败：" + (e.name==="TypeError" ? "网络/CORS 被拦截——建议部署到 https 后再同步" : e.message),"err");
+  }
 }
 
 /* =====================================================================
@@ -856,7 +892,8 @@ function bindEvents(){
   document.querySelector('[data-action="export"]').onclick = exportJSON;
   document.querySelector('[data-action="import"]').onclick = ()=>$("#fileImport").click();
   $("#fileImport").onchange = e=>{ if(e.target.files[0]) importJSON(e.target.files[0]); e.target.value=""; };
-  document.querySelector('[data-action="gist"]').onclick = async ()=>{ await gistSync(); };
+  document.querySelector('[data-action="gistUp"]').onclick = async ()=>{ await gistSync(); };
+  document.querySelector('[data-action="gistDown"]').onclick = async ()=>{ await gistLoad(); };
   document.querySelector('[data-action="settings"]').onclick = settingsModal;
   // overlay close
   $("#overlay").addEventListener("click",e=>{ if(e.target.id==="overlay") closeModal(); });
