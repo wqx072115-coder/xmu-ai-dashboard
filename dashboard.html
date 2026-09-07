@@ -61,8 +61,9 @@ main{max-width:1280px;margin:0 auto;padding:18px 20px 90px}
 .sum .k .tag{font-size:11px;font-weight:700;padding:1px 8px;border-radius:999px;background:var(--bg);color:var(--muted)}
 .sum .v{font-size:26px;font-weight:800;color:var(--navy);margin:6px 0 2px}
 .sum .v small{font-size:14px;font-weight:600;color:var(--muted)}
-.sum .bar{height:8px;border-radius:999px;background:var(--bg);overflow:hidden;margin-top:8px}
-.sum .bar i{display:block;height:100%;border-radius:999px;transition:width .5s ease}
+.sum .bar{height:8px;border-radius:999px;background:var(--bg);overflow:hidden;margin-top:8px;position:relative}
+.sum .bar i{position:absolute;left:0;top:0;height:100%;border-radius:999px;transition:width .5s ease}
+.sum .bar i.fill-plan{opacity:.35}
 .sum .d{font-size:12px;color:var(--muted);margin-top:6px}
 
 /* ===== Progress ring (total) ===== */
@@ -220,6 +221,7 @@ tbody tr:hover{background:var(--bg)}
         <button class="btn" data-action="official">📋 载入官方秋季课表</button>
         <button class="btn" data-action="ics">⬇ 导出 .ics（导入 Google 日历）</button>
         <button class="btn" data-action="vision">🧠 截图识别导入</button>
+        <button class="btn" data-action="importHtml">📄 导入课表 HTML</button>
         <label class="btn" style="cursor:pointer"><input type="checkbox" id="freeToggle" style="vertical-align:-2px"> 高亮空闲时段</label>
       </div>
       <div class="tt-wrap"><div class="tt" id="timetable"></div></div>
@@ -229,6 +231,7 @@ tbody tr:hover{background:var(--bg)}
 
   <!-- ============ Module 3: Milestones ============ -->
   <section class="panel" id="tab3">
+    <div class="note" style="margin-bottom:16px">📅 各环节时间按 <b>2026 年 9 月入学</b>推算，具体以学院当年通知为准。</div>
     <div class="grid cols-2" id="milestones"></div>
   </section>
 
@@ -356,19 +359,25 @@ const CAT_META = {
 const AI_COLLEGES = ["信息学院","人工智能系","计算机科学与技术系","自动化系"];
 
 const TRAINING = [
-  {id:"ethics",name:"学术规范教育",credit:0.5,due:"一年级秋季学期选课前",type:"toggle"},
-  {id:"proposal",name:"论文开题报告",credit:0.5,due:"一年级夏季学期结束前（通过至答辩 ≥6 个月）",type:"steps",steps:["选题确认","报告撰写","答辩审批","学分认定"]},
-  {id:"midterm",name:"中期考核",credit:1,due:"二年级夏季学期结束前（开题后 1 年）",type:"toggle"},
-  {id:"practice",name:"专业实践",credit:6,due:"三年级秋季学期结束前（累计 ≥6 个月，≥5000 字报告）",type:"practice"},
-  {id:"teaching",name:"教学实践",credit:1,due:"春秋季（硕士必选）",type:"teaching"},
-  {id:"lecture",name:"学术与技术交流",credit:1,due:"三年级秋季学期结束前（≥20 场讲座）",type:"lecture"},
+  {id:"ethics",name:"学术规范教育",credit:0.5,due:"一年级秋季学期选课前",date:"2026 年 8–9 月",type:"toggle"},
+  {id:"proposal",name:"论文开题报告",credit:0.5,due:"一年级夏季学期结束前（通过至答辩 ≥6 个月）",date:"2027 年 6–7 月",type:"steps",steps:["选题确认","报告撰写","答辩审批","学分认定"]},
+  {id:"midterm",name:"中期考核",credit:1,due:"二年级夏季学期结束前（开题后 1 年）",date:"2028 年 6–7 月",type:"toggle"},
+  {id:"practice",name:"专业实践",credit:6,due:"三年级秋季学期结束前（累计 ≥6 个月，≥5000 字报告）",date:"2028.7 前启动 → 2029 年 1 月前完成",type:"practice"},
+  {id:"teaching",name:"教学实践",credit:1,due:"春秋季（硕士必选）",date:"建议 2027–2028（研二）内完成",type:"teaching"},
+  {id:"lecture",name:"学术与技术交流",credit:1,due:"三年级秋季学期结束前（≥20 场讲座）",date:"2029 年 1 月前累计 20 场",type:"lecture"},
 ];
 
-const PAPER_STEPS = ["选题与实验跑通","论文初稿完成","导师初审与修改","投稿与返修","录用与成果登记"];
+const PAPER_STEPS = [
+  {n:"选题与实验跑通",d:"研二上 · 2027.9–2028.2"},
+  {n:"论文初稿完成",d:"2028.9–12"},
+  {n:"导师初审与修改",d:"2028.12–2029.1（前置审核，未经导师同意不得投稿）"},
+  {n:"投稿与返修",d:"建议 2028 年底前投出，留足审稿周期"},
+  {n:"录用与成果登记",d:"2029.3 前（本研系统登记 + 导师审核 + 秘书审核）"},
+];
 const THESIS_PIPE = [
-  {id:"predefense",name:"预答辩",desc:"正式答辩前 3 个月，有不合格率，通过后方可送审"},
-  {id:"blind",name:"盲审 / 论文送审",desc:"预答辩通过后；查重复制比 <10%"},
-  {id:"defense",name:"正式答辩与学位申请",desc:"学位评定委员会审核"},
+  {id:"predefense",name:"预答辩",desc:"📅 2029 年 3 月左右 · 硕士是否预答辩由导师（组）/实验室确定；博士必须（答辩前 3 个月，通过后方可查重）"},
+  {id:"blind",name:"盲审 / 论文送审",desc:"📅 2029 年 3–4 月 · 查重（复制比 <10%）通过后送审（教育部平台）；硕士评阅人 ≥2 名，专业型含 1 名行企业专家"},
+  {id:"defense",name:"正式答辩与学位申请",desc:"📅 2029 年 5–6 月 · 错过批次截止时间只能顺延下一批次授学位"},
 ];
 
 /* =====================================================================
@@ -413,6 +422,8 @@ function mergeState(obj){
   const s = deepMerge(base, obj || {});
   s.version = STATE_VERSION;
   TRAINING.forEach(t=>{ if(!s.milestones[t.id]) s.milestones[t.id] = defMile(t); });
+  // 迁移：旧版勾选值为 true → "done"；新版值为 "plan" | "done"
+  if(s.courses){ Object.keys(s.courses).forEach(k=>{ if(s.courses[k]===true) s.courses[k]="done"; }); }
   return s;
 }
 let state = load();
@@ -445,10 +456,11 @@ function toggleTheme(){ state.theme = state.theme==="dark"?"light":"dark"; apply
    Module 1：学分进度与课程
    ===================================================================== */
 function allCourses(){ return C.public.concat(C.required).concat(C.elective); }
-function selCredits(cat){
+function selCredits(cat, mode){
+  const test = v => mode==="plan" ? (v==="plan"||v==="done") : (v==="done");
   let sum=0;
-  (C[cat]||[]).forEach(c=>{ if(state.courses[c.code]) sum+=c.credit; });
-  (state.custom||[]).filter(c=>c.category===cat).forEach(c=>{ if(state.courses[c.id]) sum+=c.credit; });
+  (C[cat]||[]).forEach(c=>{ if(test(state.courses[c.code])) sum+=c.credit; });
+  (state.custom||[]).filter(c=>c.category===cat).forEach(c=>{ if(test(state.courses[c.id])) sum+=c.credit; });
   return sum;
 }
 function trainingDoneCredits(){
@@ -464,42 +476,52 @@ function trainingDoneCredits(){
 }
 
 function renderSummary(){
-  const tot = selCredits("public")+selCredits("required")+selCredits("elective");
+  const cats=["public","required","elective"];
   const train = trainingDoneCredits();
   const cards = [
-    {k:"公共课",v:selCredits("public"),t:6,color:"var(--c-pub)",d:"最低 6 学分"},
-    {k:"必修课",v:selCredits("required"),t:8,color:"var(--c-req)",d:"最低 8 学分（含组内 ≥2 门）"},
-    {k:"选修课",v:selCredits("elective"),t:7,color:"var(--c-ele)",d:"补足课程学分至 21"},
-    {k:"培养环节",v:train,t:10,color:"var(--c-tra)",d:"共 10 学分（必修）"},
+    {k:"公共课",done:selCredits("public","done"),plan:selCredits("public","plan"),t:6,color:"var(--c-pub)",d:"最低 6 学分"},
+    {k:"必修课",done:selCredits("required","done"),plan:selCredits("required","plan"),t:8,color:"var(--c-req)",d:"最低 8 学分（含组内 ≥2 门）"},
+    {k:"选修课",done:selCredits("elective","done"),plan:selCredits("elective","plan"),t:7,color:"var(--c-ele)",d:"补足课程学分至 21"},
+    {k:"培养环节",done:train,plan:train,t:10,color:"var(--c-tra)",d:"共 10 学分（必修）"},
   ];
   $("#summary").innerHTML = cards.map(c=>{
-    const pct = Math.min(100, Math.round(c.v/c.t*100));
-    const done = c.v>=c.t;
-    return `<div class="sum"><div class="k">${c.k}<span class="tag">${done?"✓ 达标":"进行中"}</span></div>
-      <div class="v">${fmt(c.v)}<small> / ${c.t} 学分</small></div>
-      <div class="bar"><i style="width:${pct}%;background:${c.color}"></i></div><div class="d">${c.d}</div></div>`;
+    const pp = Math.min(100, Math.round(c.plan/c.t*100));
+    const dp = Math.min(100, Math.round(c.done/c.t*100));
+    const st = c.done>=c.t ? "✓ 已修满" : (c.plan>=c.t ? "计划已满" : "进行中");
+    return `<div class="sum"><div class="k">${c.k}<span class="tag">${st}</span></div>
+      <div class="v">已修 ${fmt(c.done)}<small> · 计划 ${fmt(c.plan)} / ${c.t} 学分</small></div>
+      <div class="bar"><i class="fill-plan" style="width:${pp}%;background:${c.color}"></i><i class="fill-done" style="width:${dp}%;background:${c.color}"></i></div><div class="d">${c.d}</div></div>`;
   }).join("");
 
-  const total = tot + train;
-  const R=74, Cc=2*Math.PI*R, pct=Math.min(1,total/31);
+  const doneT = cats.reduce((s,c)=>s+selCredits(c,"done"),0);
+  const planT = cats.reduce((s,c)=>s+selCredits(c,"plan"),0);
+  const totalDone = doneT + train, totalPlan = planT + train;
+  const R=74, Cc=2*Math.PI*R;
+  const pd = Math.min(1,totalDone/31), pp2 = Math.min(1,totalPlan/31);
   $("#ring").innerHTML = `<svg width="180" height="180" viewBox="0 0 180 180">
     <circle cx="90" cy="90" r="${R}" fill="none" stroke="var(--bg)" stroke-width="14"/>
-    <circle cx="90" cy="90" r="${R}" fill="none" stroke="${total>=31?"var(--ok)":"var(--brand)"}" stroke-width="14"
-      stroke-dasharray="${pct*Cc} ${Cc}" stroke-linecap="round"></circle></svg>
-    <div class="c"><div><b>${fmt(total)}</b><br><span>/ 31 学分</span></div></div>`;
+    <circle cx="90" cy="90" r="${R}" fill="none" stroke="var(--brand)" stroke-width="14" opacity=".32"
+      stroke-dasharray="${pp2*Cc} ${Cc}" stroke-linecap="round"></circle>
+    <circle cx="90" cy="90" r="${R}" fill="none" stroke="${totalDone>=31?"var(--ok)":"var(--brand)"}" stroke-width="14"
+      stroke-dasharray="${pd*Cc} ${Cc}" stroke-linecap="round"></circle></svg>
+    <div class="c"><div><b>${fmt(totalDone)}</b><br><span>已修 / 计划 ${fmt(totalPlan)} · 共 31 学分</span></div></div>`;
   const segs = [
-    {n:"公共课",v:selCredits("public"),c:"var(--c-pub)"},
-    {n:"必修课",v:selCredits("required"),c:"var(--c-req)"},
-    {n:"选修课",v:selCredits("elective"),c:"var(--c-ele)"},
-    {n:"培养环节",v:train,c:"var(--c-tra)"},
+    {n:"公共课",d:selCredits("public","done"),p:selCredits("public","plan"),c:"var(--c-pub)"},
+    {n:"必修课",d:selCredits("required","done"),p:selCredits("required","plan"),c:"var(--c-req)"},
+    {n:"选修课",d:selCredits("elective","done"),p:selCredits("elective","plan"),c:"var(--c-ele)"},
+    {n:"培养环节",d:train,p:train,c:"var(--c-tra)"},
   ];
-  $("#ringLegend").innerHTML = segs.map(s=>`<div class="row" style="margin:6px 0"><span style="width:12px;height:12px;border-radius:4px;background:${s.c}"></span><span style="flex:1">${s.n}</span><b>${fmt(s.v)} 学分</b></div>`).join("");
+  $("#ringLegend").innerHTML = segs.map(s=>`<div class="row" style="margin:6px 0"><span style="width:12px;height:12px;border-radius:4px;background:${s.c}"></span><span style="flex:1">${s.n}</span><b>已修 ${fmt(s.d)} · 计划 ${fmt(s.p)}</b></div>`).join("")
+    + `<div class="row" style="margin-top:10px;font-size:12px;color:var(--muted)">浅色 = 预选（计划）· 深色 = 实选（已修）</div>`;
 }
 
 function courseRow(c, cat){
-  const checked = state.courses[c.code] ? "checked" : "";
+  const v = state.courses[c.code];
+  const plan = (v==="plan"||v==="done") ? "checked" : "";
+  const done = v==="done" ? "checked" : "";
   return `<tr>
-    <td><input type="checkbox" class="sel" data-code="${esc(c.code)}" ${checked}></td>
+    <td title="预选（计划修读）"><input type="checkbox" class="sel sel-plan" data-code="${esc(c.code)}" ${plan}></td>
+    <td title="实选（已修完）"><input type="checkbox" class="sel sel-done" data-code="${esc(c.code)}" ${done}></td>
     <td class="mono">${esc(c.code)}</td>
     <td>${esc(c.name)}</td>
     <td class="cred">${c.credit}</td>
@@ -520,18 +542,21 @@ function renderCourses(){
   const tbl = (cat, rows) => {
     const filtered = rows.filter(filter);
     if(!filtered.length) return "";
-    return `<h4 style="margin:16px 0 6px;color:var(--navy)">${CAT_META[cat].label} <span class="hint" style="font-weight:500;color:var(--muted);font-size:12px">已选 ${fmt(selCredits(cat))} / ${CAT_META[cat].target} 学分</span></h4>
-    <table><thead><tr><th style="width:34px"></th><th>代码</th><th>课程</th><th>学分</th><th>学时</th><th>学期</th><th>学院</th><th>要求</th></tr></thead>
+    return `<h4 style="margin:16px 0 6px;color:var(--navy)">${CAT_META[cat].label} <span class="hint" style="font-weight:500;color:var(--muted);font-size:12px">已修 ${fmt(selCredits(cat,"done"))} · 计划 ${fmt(selCredits(cat,"plan"))} / ${CAT_META[cat].target} 学分</span></h4>
+    <table><thead><tr><th style="width:26px" title="预选=计划修读">预</th><th style="width:26px" title="实选=已修完">实</th><th>代码</th><th>课程</th><th>学分</th><th>学时</th><th>学期</th><th>学院</th><th>要求</th></tr></thead>
     <tbody>${filtered.map(c=>courseRow(c,cat)).join("")}</tbody></table>`;
   };
   let html = tbl("public", C.public) + tbl("required", C.required) + tbl("elective", C.elective);
   // 自定义课程
   const custom = (state.custom||[]).filter(filter);
   if(custom.length){
-    html += `<h4 style="margin:16px 0 6px">自定义课程</h4><table><thead><tr><th style="width:34px"></th><th>代码</th><th>课程</th><th>学分</th><th>学时</th><th>学期</th><th>学院</th><th>要求</th><th></th></tr></thead><tbody>`+
+    html += `<h4 style="margin:16px 0 6px">自定义课程</h4><table><thead><tr><th style="width:26px">预</th><th style="width:26px">实</th><th>代码</th><th>课程</th><th>学分</th><th>学时</th><th>学期</th><th>学院</th><th>要求</th><th></th></tr></thead><tbody>`+
       custom.map(c=>{
-        const checked = state.courses[c.id]?"checked":"";
-        return `<tr><td><input type="checkbox" class="sel" data-code="${esc(c.id)}" ${checked}></td>
+        const v = state.courses[c.id];
+        const plan = (v==="plan"||v==="done")?"checked":"";
+        const done = v==="done"?"checked":"";
+        return `<tr><td><input type="checkbox" class="sel sel-plan" data-code="${esc(c.id)}" ${plan}></td>
+        <td><input type="checkbox" class="sel sel-done" data-code="${esc(c.id)}" ${done}></td>
         <td class="mono">自定义</td><td>${esc(c.name)}</td><td class="cred">${c.credit}</td><td>${c.hours||"—"}</td><td>${esc(c.sem)}</td><td>${esc(c.college)}</td><td><span class="tag opt">${esc(c.category==="public"?"公共":c.category==="required"?"必修":"选修")}</span></td>
         <td><button class="btn sm danger" data-del-custom="${esc(c.id)}">删</button></td></tr>`;
       }).join("")+"</tbody></table>";
@@ -550,7 +575,7 @@ function addCustomCourse(){
     const name = $("#f_name").value.trim();
     if(!name){ toast("请输入课程名称","err"); return; }
     state.custom.push({id:"c"+uid(), name, credit:parseFloat($("#f_credit").value)||0, hours:parseFloat($("#f_hours").value)||0, sem:$("#f_sem").value, college:$("#f_college").value.trim()||"自定义", category:$("#f_cat").value, rule:"自定义"});
-    state.courses[state.custom[state.custom.length-1].id] = true;
+    state.courses[state.custom[state.custom.length-1].id] = "plan";
     save(); closeModal(); renderAll();
     toast("已添加并勾选课程","ok");
   };
@@ -589,33 +614,61 @@ function weekNumber(){
     return diff>=0 ? diff+1 : null;
   }catch(e){ return null; }
 }
+/* ---- 周次解析与过滤 ---- */
+function parseWeeks(s){
+  if(!s) return null;
+  let m = String(s).match(/(\d+)\s*[-–]\s*(\d+)\s*(单|双)?\s*周/);
+  if(m) return {from:+m[1], to:+m[2], parity: m[3]==="单"?"odd":(m[3]==="双"?"even":"all")};
+  m = String(s).match(/(\d+)\s*(单|双)?\s*周/);
+  if(m) return {from:+m[1], to:+m[1], parity: m[2]==="单"?"odd":(m[2]==="双"?"even":"all")};
+  return null;
+}
+function weeksLabel(wk){
+  if(!wk) return "";
+  return wk.from + "-" + wk.to + (wk.parity==="odd"?"单":(wk.parity==="even"?"双":"")) + "周";
+}
+function blockActiveInWeek(b, w){
+  if(!b.weeks) return true;
+  const wk = b.weeks;
+  if(w < wk.from || w > wk.to) return false;
+  if(wk.parity==="odd" && w%2===0) return false;
+  if(wk.parity==="even" && w%2===1) return false;
+  return true;
+}
+function currentViewWeek(){
+  if(state._viewWeek) return state._viewWeek;
+  return weekNumber() || 1;
+}
 /* 官方 2026-2027 秋季课表（AI 相关课程，含课程群号来源见学校资料 xlsx） */
 const OFFICIAL_SCHEDULE = [
-  {name:"机器学习（信息1班）",teacher:"王程,臧彧,温程璐,沈思淇,范晓亮",sch:"星期五[2-4节]西部片区2号楼205"},
-  {name:"机器学习（信息2班）",teacher:"苏松志",sch:"星期四[9-11节]西部片区2号楼205"},
-  {name:"机器学习（信息3班）",teacher:"丁兴号",sch:"星期一[9-11节]学武楼（1号楼）B305"},
-  {name:"专业英语（智能软工班）",teacher:"刘弘",sch:"星期三[3-4节]学武楼（1号楼）A404"},
-  {name:"专业英语（计算机班）",teacher:"罗晔",sch:"星期四[5-6节]西部片区2号楼205"},
-  {name:"专业英语（通信班）",teacher:"吴云峰",sch:"星期三[7-8节]西部片区2号楼109"},
-  {name:"高级人工智能",teacher:"孙晓帅,胡啸林",sch:"星期四[3-4节]西部片区2号楼109;星期四[7-8节]西部片区2号楼109"},
-  {name:"计算机视觉",teacher:"曲延云",sch:"星期三[9-11节]西部片区2号楼106"},
-  {name:"计算机视觉",teacher:"罗志明",sch:"星期二[9-11节]西部片区2号楼106"},
-  {name:"计算语言学",teacher:"史晓东",sch:"星期一[3-4节]西部片区2号楼210;星期三[1-2节]西部片区2号楼210"},
-  {name:"科技论文写作（信息4班）",teacher:"郑清萍,王菡子",sch:"星期二[5-6节]西部片区2号楼109"},
-  {name:"最优化理论与算法",teacher:"陈胤燃",sch:"星期三[9-11节]学武楼（1号楼）A204"},
-  {name:"智能计算系统",teacher:"刘向荣,金泰松",sch:"星期二[3-4节]西部片区2号楼108"},
-  {name:"心脑计算",teacher:"吴梅红",sch:"星期四[7-8节]学武楼（1号楼）B206"},
-  {name:"网络系统前沿研究",teacher:"向乔,高聪明,唐璐,苏强",sch:"星期二[9-11节]西部片区2号楼109"},
-  {name:"软件测试与程序分析基础",teacher:"黄华勋,吴荣鑫",sch:"星期一[5-6节]西部片区2号楼108"},
-  {name:"生成式人工智能技术与应用",teacher:"张志宏",sch:"星期五[9-11节]西部片区2号楼108"},
-  {name:"多媒体技术",teacher:"赵万磊",sch:"星期五[5-6节]西部片区2号楼210"},
-  {name:"工程伦理",teacher:"袁飞,薛镖",sch:"星期二[1-2节]西部片区2号楼205"},
-  {name:"大学生职业素养养成",teacher:"陈梦,蔡婧蓉",sch:"星期一[7-8节]西部片区4号楼106"},
-  {name:"矩阵论",teacher:"陈中贵",sch:"星期二[5-6节]西部片区4号楼103;星期三[5-6节]西部片区4号楼103"},
-  {name:"算法设计与分析",teacher:"林文水",sch:"星期三[9-11节]学武楼（1号楼）B212"},
-  {name:"计算智能",teacher:"曲延云,陈胤燃",sch:"星期一[9-11节]西部片区2号楼210"},
-  {name:"智算系统前沿",teacher:"吕熠娜,高聪明,沈耀斌",sch:"星期五[5-6节]西部片区2号楼211"},
-  {name:"分布式系统",teacher:"王晓黎",sch:"星期五[3-4节]西部片区2号楼109"},
+  {name:"机器学习（信息1班）",teacher:"王程,臧彧,温程璐,沈思淇,范晓亮",sch:"星期五[2-4节]西部片区2号楼205",wk:"1-16"},
+  {name:"机器学习（信息2班）",teacher:"苏松志",sch:"星期四[9-11节]西部片区2号楼205",wk:"1-16"},
+  {name:"机器学习（信息3班）",teacher:"丁兴号",sch:"星期一[9-11节]学武楼（1号楼）B305",wk:"1-16"},
+  {name:"专业英语（智能软工班）",teacher:"刘弘",sch:"星期三[3-4节]学武楼（1号楼）A404",wk:"1-16"},
+  {name:"专业英语（计算机班）",teacher:"罗晔",sch:"星期四[5-6节]西部片区2号楼205",wk:"1-16"},
+  {name:"专业英语（通信班）",teacher:"吴云峰",sch:"星期三[7-8节]西部片区2号楼109",wk:"1-16"},
+  {name:"高级人工智能",teacher:"孙晓帅,胡啸林",sch:"星期四[3-4节]西部片区2号楼109",wk:"1-16"},
+  {name:"高级人工智能（双周）",teacher:"孙晓帅,胡啸林",sch:"星期四[7-8节]西部片区2号楼109",wk:"2-16双"},
+  {name:"计算机视觉",teacher:"曲延云",sch:"星期三[9-11节]西部片区2号楼106",wk:"1-16"},
+  {name:"计算机视觉",teacher:"罗志明",sch:"星期二[9-11节]西部片区2号楼106",wk:"1-16"},
+  {name:"计算语言学",teacher:"史晓东",sch:"星期一[3-4节]西部片区2号楼210",wk:"1-16"},
+  {name:"计算语言学（单周）",teacher:"史晓东",sch:"星期三[1-2节]西部片区2号楼210",wk:"1-15单"},
+  {name:"科技论文写作（信息4班）",teacher:"郑清萍,王菡子",sch:"星期二[5-6节]西部片区2号楼109",wk:"1-16"},
+  {name:"最优化理论与算法",teacher:"陈胤燃",sch:"星期三[9-11节]学武楼（1号楼）A204",wk:"1-16"},
+  {name:"智能计算系统",teacher:"刘向荣,金泰松",sch:"星期二[3-4节]西部片区2号楼108",wk:"1-16"},
+  {name:"心脑计算",teacher:"吴梅红",sch:"星期四[7-8节]学武楼（1号楼）B206",wk:"1-16"},
+  {name:"网络系统前沿研究",teacher:"向乔,高聪明,唐璐,苏强",sch:"星期二[9-11节]西部片区2号楼109",wk:"1-16"},
+  {name:"软件测试与程序分析基础",teacher:"黄华勋,吴荣鑫",sch:"星期一[5-6节]西部片区2号楼108",wk:"1-16"},
+  {name:"生成式人工智能技术与应用",teacher:"张志宏",sch:"星期五[9-11节]西部片区2号楼108",wk:"1-11"},
+  {name:"多媒体技术",teacher:"赵万磊",sch:"星期五[5-6节]西部片区2号楼210",wk:"1-16"},
+  {name:"工程伦理",teacher:"袁飞,薛镖",sch:"星期二[1-2节]西部片区2号楼205",wk:"1-8"},
+  {name:"大学生职业素养养成",teacher:"陈梦,蔡婧蓉",sch:"星期一[7-8节]西部片区4号楼106",wk:"2-16双"},
+  {name:"矩阵论",teacher:"陈中贵",sch:"星期二[5-6节]西部片区4号楼103",wk:"1-16"},
+  {name:"矩阵论（双周）",teacher:"陈中贵",sch:"星期三[5-6节]西部片区4号楼103",wk:"2-16双"},
+  {name:"算法设计与分析",teacher:"林文水",sch:"星期三[9-11节]学武楼（1号楼）B212",wk:"1-16"},
+  {name:"计算智能",teacher:"曲延云,陈胤燃",sch:"星期一[9-11节]西部片区2号楼210",wk:"1-16"},
+  {name:"智算系统前沿",teacher:"吕熠娜,高聪明,沈耀斌",sch:"星期五[5-6节]西部片区2号楼211",wk:"1-16"},
+  {name:"分布式系统",teacher:"王晓黎",sch:"星期五[3-4节]西部片区2号楼109",wk:"1-16"},
 ];
 function parseSchedule(str){
   const dayMap={"一":0,"二":1,"三":2,"四":3,"五":4,"六":5,"日":6};
@@ -632,7 +685,7 @@ function importOfficialSchedule(){
   const startN = state.schedule.length;
   OFFICIAL_SCHEDULE.forEach(o=>{
     parseSchedule(o.sch).forEach(b=>{
-      state.schedule.push({id:uid(), name:o.name, day:b.day, start:b.start, end:b.end, room:b.room, color:"var(--brand)"});
+      state.schedule.push({id:uid(), name:o.name, day:b.day, start:b.start, end:b.end, room:b.room, color:"var(--brand)", weeks:parseWeeks(o.wk)});
     });
   });
   save(); renderSchedule();
@@ -640,23 +693,26 @@ function importOfficialSchedule(){
 }
 
 function renderSchedule(){
-  const w = weekNumber();
-  $("#weekInfo").textContent = w ? `第 ${w} 周` : "（请在设置中填写学期起始日期）";
+  const now = weekNumber();
+  const w = currentViewWeek();
+  const isNow = (now && w===now);
+  $("#weekInfo").innerHTML = `<button class="btn sm" data-action="prevWeek">◀</button> <b style="font-size:15px">第 ${w} 周</b>${isNow?"（本周）":""} <button class="btn sm" data-action="nextWeek">▶</button> <button class="btn sm" data-action="thisWeek">回到本周</button>${now?"":" <span style='font-size:11px'>（学期起始日期未设置）</span>"}`;
   const free = $("#freeToggle").checked;
+  const active = state.schedule.filter(s=>blockActiveInWeek(s, w));
   const covered = {};
-  state.schedule.forEach(s=>{ for(let p=s.start;p<=s.end;p++){ if(p!==s.start) covered[s.day+"-"+p]=true; } });
+  active.forEach(s=>{ for(let p=s.start;p<=s.end;p++){ if(p!==s.start) covered[s.day+"-"+p]=true; } });
   let cells = `<div class="hdr" style="grid-row:1;grid-column:1">节/时间</div>`;
   DAYS.forEach((d,i)=> cells += `<div class="hdr" style="grid-row:1;grid-column:${i+2}">${d}</div>`);
   for(let p=0;p<11;p++){
     cells += `<div class="tcol" style="grid-row:${p+2};grid-column:1">${p+1}<br>${PERIOD_TIMES[p]}</div>`;
     for(let d=0;d<7;d++){
-      const blk = state.schedule.find(s=>s.day===d && s.start===p);
+      const blk = active.find(s=>s.day===d && s.start===p);
       if(blk){
-        const span = blk.end-blik.start+1;
+        const span = blk.end-blk.start+1;
         const color = blk.color || "var(--brand)";
         cells += `<div class="cell" style="grid-row:${p+2} / span ${span};grid-column:${d+2};display:flex;padding:0;border:none">
           <div class="course-block" data-id="${blk.id}" style="--c:${color};width:100%" title="点击编辑">
-            <div class="nm">${esc(blk.name)}</div><div class="rm">${esc(blk.room||"")}</div>
+            <div class="nm">${esc(blk.name)}</div><div class="rm">${esc(blk.room||"")}${blk.weeks?" · "+weeksLabel(blk.weeks):""}</div>
           </div></div>`;
       } else if(!covered[d+"-"+p]){
         let cls = "cell clickable";
@@ -666,7 +722,7 @@ function renderSchedule(){
     }
   }
   $("#timetable").innerHTML = cells;
-  $("#ttLegend").innerHTML = "点<b>课程块</b>可编辑/删除；点<b>空白格</b>可直接在该时段添加任务或课程。同步 Google 日历：点「导出 .ics」→ 打开 Google 日历 → 设置 → 导入日历 → 上传 .ics（每个星期重复的课会自动按周重复）。";
+  $("#ttLegend").innerHTML = "显示<b>第 ${w} 周</b>生效的课程（单双周/区间周次自动过滤）。点<b>课程块</b>可编辑/删除；点<b>空白格</b>可直接添加任务。同步 Google 日历：点「导出 .ics」→ Google 日历 → 设置 → 导入日历。";
 }
 function scheduleBlock(id){ return state.schedule.find(s=>s.id===id); }
 function blockModal(id, prefill){
@@ -687,13 +743,14 @@ function blockModal(id, prefill){
         ${["蓝","绿","金","红","紫","青","橙","灰"].map((n,i)=>`<option value="${["var(--brand)","#2e9e6b","#c9a227","#b3452f","#7c5cbf","#0ea5b7","#e0765a","#64748b"][i]}">${n}</option>`).join("")}
       </select></div>
     </div>
+    <div class="field"><label>周次（如 1-16、2-16双、1-15单、1-11；留空=每周）</label><input id="b_weeks" value="${b&&b.weeks?weeksLabel(b.weeks):""}" placeholder="1-16"></div>
     <div class="row mt"><button class="btn pri" id="b_save">保存</button>${b?`<button class="btn danger" id="b_del">删除</button>`:""}<button class="btn" data-close>取消</button></div>`);
   $("#b_save").onclick = ()=>{
     const name = $("#b_name").value.trim();
     if(!name){ toast("请输入课程名称","err"); return; }
     const start = parseInt($("#b_start").value), end = parseInt($("#b_end").value);
     if(end<start){ toast("结束节次不能早于开始","err"); return; }
-    const obj = { id: b?b.id:uid(), name, day:parseInt($("#b_day").value), start, end, room:$("#b_room").value.trim(), color:$("#b_color").value };
+    const obj = { id: b?b.id:uid(), name, day:parseInt($("#b_day").value), start, end, room:$("#b_room").value.trim(), color:$("#b_color").value, weeks:parseWeeks($("#b_weeks").value.trim()) };
     if(b){ Object.assign(b, obj); } else { state.schedule.push(obj); }
     save(); closeModal(); renderSchedule();
     toast("已保存课表","ok");
@@ -760,6 +817,100 @@ async function callLLM(imgB64, prompt){
   const j = await r.json();
   return j.choices[0].message.content;
 }
+async function callLLMText(prompt){
+  const {llmBaseUrl,llmApiKey,llmModel} = state.settings;
+  const url = llmBaseUrl.replace(/\/+$/,"");
+  const body = { model: llmModel, messages:[{role:"user",content:prompt}], temperature:0 };
+  const r = await fetch(url+"/chat/completions", {method:"POST", headers:{"Content-Type":"application/json","Authorization":"Bearer "+llmApiKey}, body:JSON.stringify(body)});
+  if(!r.ok){ const t = await r.text(); throw new Error(t.slice(0,200)); }
+  const j = await r.json();
+  return j.choices[0].message.content;
+}
+function heuristicSchedule(text){
+  const dayMap={"一":0,"二":1,"三":2,"四":3,"五":4,"六":5,"日":6,"天":6};
+  const out=[];
+  const re=/星期([一二三四五六日天])[\s\S]{0,30}?(\d+)\s*[-–]\s*(\d+)\s*节/g;
+  let m;
+  while((m=re.exec(text))!==null){
+    const day=dayMap[m[1]], s=+m[2]-1, e=+m[3]-1;
+    if(day===undefined||s<0||e<s||e>10) continue;
+    const pre=text.slice(Math.max(0,m.index-60), m.index).trim();
+    const nm=pre.match(/[A-Za-z0-9\u4e00-\u9fa5（）()ⅠⅡⅢⅣ]+$/);
+    const roomM=text.slice(m.index, m.index+120).match(/((?:[东西]部片区|学武楼|坤銮楼|德旺楼|嘉庚|海韵)[^,，;；\s]{0,20})/);
+    out.push({name:(nm?nm[0]:"未识别课程")+"（待核对）", day:day, start:s, end:e, room:roomM?roomM[1]:""});
+  }
+  const seen=new Set();
+  return out.filter(b=>{ const k=b.day+"-"+b.start+"-"+b.end+"-"+b.name; if(seen.has(k))return false; seen.add(k); return true; });
+}
+/* 精准解析：教务系统保存的课表页（<td jc xq rowspan> + 内含 div[周/课名/教师/教室]） */
+function parseSavedTimetableHtml(html){
+  const out = [];
+  const re = /<td[^>]*\bjc="(\d+)"[^>]*\bxq="(\d+)"[^>]*\browspan="(\d+)"[^>]*>([\s\S]*?)<\/td>/g;
+  let m;
+  while((m = re.exec(html)) !== null){
+    const start = +m[1] - 1, day = +m[2] - 1, span = (+m[3]) || 1;
+    if(day < 0 || day > 6 || start < 0 || start > 10) continue;
+    const inner = m[4];
+    const divs = [];
+    const dre = /<div[^>]*>([\s\S]*?)<\/div>/g; let dm;
+    while((dm = dre.exec(inner)) !== null){
+      const txt = dm[1].replace(/<[^>]+>/g,"").replace(/&nbsp;/g," ").replace(/&amp;/g,"&").trim();
+      if(txt && txt !== "研") divs.push(txt);
+    }
+    if(!divs.length) continue;
+    let weeks = null, name = "", teacher = "", room = "";
+    const wk = parseWeeks(divs[0]);
+    if(wk){ weeks = wk; name = divs[1] || "课程"; teacher = divs[2] || ""; room = divs[3] || ""; }
+    else {
+      name = divs[0];
+      room = divs.find(d=>/(楼|区|室|馆|厅|中心|院)/.test(d)) || "";
+      teacher = divs.find(d=>d!==name && d!==room) || "";
+    }
+    out.push({name, day, start, end:start+span-1, room, teacher, weeks});
+  }
+  return out;
+}
+function importHtmlModal(){
+  openModal(`<h3>导入教务系统课表（HTML）</h3>
+    <div class="field"><label>操作步骤</label><div class="help" style="font-size:12.5px">① 用浏览器打开教务系统「我的课表」页面（jw.xmu.edu.cn）→ ② 按 Ctrl+S 保存为 .html 文件 → ③ 在此处上传。<br>优先用<b>结构化解析</b>（精准识别课程名/周次/教室，无需配置）；解析不到时再回退到大模型/规则解析。</div></div>
+    <div class="field"><label>选择保存的 HTML 文件</label><input type="file" id="h_file" accept=".html,.htm"></div>
+    <div class="row mt"><button class="btn pri" id="h_go">开始解析并导入</button><button class="btn" data-close>取消</button></div>`);
+  $("#h_go").onclick = async ()=>{
+    const f = $("#h_file").files[0];
+    if(!f){ toast("请先选择文件","err"); return; }
+    toast("解析中…");
+    try{
+      const raw = await f.text();
+      // ① 优先：结构化解析（教务系统保存页格式，含周次）
+      let arr = parseSavedTimetableHtml(raw);
+      let mode = "structured";
+      if(!arr.length){
+        const text = raw.replace(/<script[\s\S]*?<\/script>/gi," ").replace(/<style[\s\S]*?<\/style>/gi," ").replace(/<[^>]+>/g," ").replace(/&nbsp;/gi," ").replace(/\s+/g," ");
+        const useLLM = state.settings.llmBaseUrl && state.settings.llmApiKey && state.settings.llmModel;
+        if(useLLM){
+          mode = "llm";
+          const clipped = text.slice(0,12000);
+          const res = await callLLMText("以下是从教务系统保存的课表页面提取的文本。请提取所有课程及上课时段，只返回 JSON 数组，不要任何其他文字。元素格式：{\"name\":\"课程名\",\"day\":0-6(周一=0),\"start\":0-10(第几节-1),\"end\":0-10,\"room\":\"教室\"}，无教室留空。\n\n"+clipped);
+          arr = JSON.parse(extractJSON(res));
+          if(!Array.isArray(arr)) throw new Error("解析结果不是数组");
+        } else {
+          mode = "heuristic";
+          arr = heuristicSchedule(text);
+          if(!arr.length){ toast("三种解析方式均未识别到课程；请在设置中配置视觉模型后重试，或用截图识别","err"); return; }
+        }
+      }
+      let n=0;
+      arr.forEach(x=>{
+        const st = Math.max(0, Math.min(10, parseInt(x.start)||0));
+        const en = (x.end===undefined||x.end===null||x.end==="") ? st : Math.max(0, Math.min(10, parseInt(x.end)||st));
+        state.schedule.push({id:uid(), name:String(x.name||"课程"), day:Math.max(0,Math.min(6,parseInt(x.day)||0)), start:st, end:Math.max(st,en), room:x.room?String(x.room):"", color:"var(--brand)", weeks:x.weeks||null});
+        n++;
+      });
+      save(); closeModal(); renderSchedule();
+      toast(`已导入 ${n} 个时段（${mode==="structured"?"结构化解析":mode==="llm"?"大模型解析":"规则解析，请核对"}）`,"ok");
+    }catch(e){ toast("导入失败："+e.message,"err"); }
+  };
+}
 
 /* =====================================================================
    Module 3：培养环节
@@ -791,7 +942,7 @@ function renderMilestones(){
     }
     const done = mileDone(t);
     return `<div class="mile">
-      <div class="top"><div><div class="nm">${t.name}</div><div class="due">${t.due}</div></div><span class="cr" style="${done?"color:var(--ok)":""}">${done?"✓ 完成":"未完成"} · ${t.credit} 学分</span></div>
+      <div class="top"><div><div class="nm">${t.name}</div><div class="tag two" style="margin:3px 0 2px">📅 ${t.date||""}</div><div class="due">${t.due}</div></div><span class="cr" style="${done?"color:var(--ok)":""}">${done?"✓ 完成":"未完成"} · ${t.credit} 学分</span></div>
       ${body}</div>`;
   }).join("");
 }
@@ -806,15 +957,36 @@ function renderThesis(){
     <span class="tag ${p.status==="录用"?"opt":p.status==="投稿中"?"group":"must"}">${esc(p.status)}</span>
     <button class="btn sm" data-edit-paper="${esc(p.id)}">编辑</button>
     <button class="btn sm danger" data-del-paper="${esc(p.id)}">删</button></div>`).join("") : `<div class="empty">暂无记录，点击上方添加论文/成果</div>`;
-  $("#paperSteps").innerHTML = PAPER_STEPS.map((s,i)=>`<div class="step ${i<=(state.paperStep||0)?"on":""}" data-pstep="${i}" style="margin:4px 0;cursor:pointer;text-align:left;padding:9px 12px;border-radius:9px;border:1px solid var(--line)">${i<(state.paperStep||0)?"✓ ":(i===state.paperStep?"● ":"○ ")}${s}</div>`).join("");
+  $("#paperSteps").innerHTML = PAPER_STEPS.map((s,i)=>`<div class="step ${i<=(state.paperStep||0)?"on":""}" data-pstep="${i}" style="margin:4px 0;cursor:pointer;text-align:left;padding:9px 12px;border-radius:9px;border:1px solid var(--line)">${i<(state.paperStep||0)?"✓ ":(i===state.paperStep?"● ":"○ ")}<b>${s.n}</b><br><span style="font-size:11.5px;opacity:.85">${s.d}</span></div>`).join("");
   $("#thesisPipe").innerHTML = THESIS_PIPE.map(p=>{ const done = state.thesis[p.id]; return `<div class="pipe-item ${done?"done":""}"><div style="flex:1"><div class="pt">${p.name}</div><div class="pd">${p.desc}</div></div><label style="cursor:pointer"><input type="checkbox" class="pipe-toggle" data-id="${p.id}" ${done?"checked":""} style="width:18px;height:18px"> 完成</label></div>`; }).join("");
   $("#thesisRules").innerHTML = `<ul style="margin-left:18px;font-size:13.5px">
-    <li>开题通过至答辩 <b>≥6 个月</b></li>
-    <li>预答辩在正式答辩 <b>前 3 个月</b>，有不合格率</li>
-    <li>查重（去除本人已发表文献复制比）<b>&lt;10%</b></li>
-    <li>成果类型：专题研究论文 / 调研报告 / 案例分析 / 产品设计 / 方案设计</li>
-    <li>小论文、专利投稿须<b>导师前置审核</b></li></ul>`;
-  $("#paperRule").innerHTML = "<b>规则：</b>科研论著、专利、论文投稿等成果实行导师前置审核制度，未经导师审核不予认可。";
+    <li><b>字数：</b>硕士学位论文一般<b>不少于 3 万字</b>（博士 ≥5 万字）</li>
+    <li><b>时间硬线：</b>开题（2027.6–7）通过至申请答辩 <b>≥6 个月</b></li>
+    <li><b>预答辩：</b>硕士是否预答辩由导师（组）/实验室确定；<b>博士必须</b>（答辩前 3 个月、有不合格率，通过后方可查重）</li>
+    <li><b>查重两次：</b>① 送审前（全文，不含声明）；② 答辩后终稿（含封面声明，删空白页）；去除本人已发表文献复制比 <b>&lt;10%</b></li>
+    <li><b>盲审：</b>须删除姓名/导师/致谢/作者信息；全部走教育部平台；<b>硕士评阅人 ≥2 名</b>（专业型其中 1 篇须行企业专家评审）；硕士平台评阅约 25 个工作日</li>
+    <li><b>评阅分数：</b>≥75 直接答辩；1 人 70–75 → 修改 30 天后答辩；1 人 &lt;70 → 增聘 2 名复评；≥2 人 &lt;70 → 不可答辩（首送不合格须 ≥6 个月后重送）</li>
+    <li><b>送审节点：</b>预计 6 月/12 月授学位的，论文分别于 <b>3 月底4月初 / 9 月底10月初</b>提交送审平台（以学院当年通知为准）</li>
+    <li><b>实践成果鉴定：</b>以实践成果申请学位的专硕，<b>须完成「实践成果报告鉴定会」</b></li>
+    <li><b>成果类型（五选一）：</b>专题研究类论文 / 调研报告 / 案例分析报告 / 产品设计 / 方案设计</li>
+    <li><b>独立性：</b>导师指导下独立完成；团队成果须注明并明确个人独立部分；不得使用曾申请其他学位的材料</li>
+    <li><b>格式：</b>按《厦门大学研究生学位论文规范》执行（<a href="https://gs.xmu.edu.cn/info/1631/53641.htm" target="_blank">官方规范</a>）</li>
+    <li>错过批次答辩/材料截止时间 → 只能顺延下一批次授学位</li></ul>`;
+  $("#paperRule").innerHTML = `<b>专硕成果要求（《信息学院硕士研究生申请学位科研成果认定办法 2024-15》，2025 级起适用、2026 级沿用；<a href="https://informatics.xmu.edu.cn/info/2301/178001.htm" target="_blank">官方页</a>）——满足<b>四选一</b>即可：</b>
+    <ol style="margin:6px 0 6px 20px;font-size:13px">
+    <li>面向工程实际问题，<b>独立完成有创新性、可验证、可演示的系统或模块</b>；</li>
+    <li>获一项<b>国家发明专利授权</b>，或一项<b>实用新型专利授权</b>+一项国家发明专利（已公开）；</li>
+    <li>竞赛获奖（仅限《研究生重点赛事清单》，<b>须参赛前有导师书面同意函</b>）：团队前二获 A-类国家级一等 / A 类国家级二等 / A+ 类国家级三等；或团队前三获 A 类国家级一等 / A+ 类国家二等及以上；</li>
+    <li>达到<b>学术型硕士</b>成果要求：中科院"工程技术/计算机科学"大类<b>二区及以上</b>期刊 1 篇；或 <b>CCF 推荐目录</b>国际期刊/会议 1 篇；或排名前二（导师可不纳入）在中科院一区 / CCF-A / 《学院推荐期刊目录》期刊 1 篇。</li>
+    </ol>
+    <b>认定要求：</b><ul style="margin:0 0 6px 18px;font-size:13px">
+    <li>未特别说明的须为<b>第一完成人</b>（主导师为第一完成人时，硕士第二完成人视同第一）；</li>
+    <li>第一署名单位原则上为<b>「厦门大学」</b>；</li>
+    <li>中科院分区以发表年份或最新版<b>较高者</b>为准；<b>不含近五年进入过《国际期刊预警名单》的期刊</b>；不含会议短文、期刊非研究类论文；内容须与学位论文相关；成果须为入学起至获学位前取得；</li>
+    <li>发表前经导师同意；认定须导师<b>系统审核 + 手写签名</b>；智能系专硕联系<b>麻老师 2580599 / malinjian@xmu.edu.cn</b>；</li>
+    <li><b>高水平中文学术期刊</b>（附件1）：软件学报、计算机学报、中国科学·信息科学、计算机研究与发展、计算机辅助设计与图形学学报、电子学报、自动化学报、通信学报、电子与信息学报、声学学报；</li>
+    <li><b>推荐国际期刊</b>（附件1，含 TPAMI / TKDE / TIP / TNNLS 等 48 种 IEEE Transactions 及主流期刊）；</li>
+    <li><b>竞赛清单</b>（附件2）：A+ 类 = 互联网+、挑战杯；A 类 = 研究生数学建模、<b>研究生人工智能创新大赛</b>、研究生电子设计、网络安全、创"芯"、操作系统开源、机器人创新设计；A- 类 = 其他研究生创新实践系列赛主题赛事。</li></ul>`;
 }
 function paperModal(id){
   const p = id ? state.papers.find(x=>x.id===id) : null;
@@ -984,7 +1156,17 @@ function bindEvents(){
   // 课程勾选（事件委托）
   document.addEventListener("change",e=>{
     const el=e.target;
-    if(el.classList.contains("sel")){ if(el.checked) state.courses[el.dataset.code]=true; else delete state.courses[el.dataset.code]; save(); renderSummary(); }
+    if(el.classList.contains("sel")){
+      const code = el.dataset.code;
+      if(el.classList.contains("sel-plan")){
+        if(el.checked){ if(state.courses[code]!=="done") state.courses[code]="plan"; }
+        else delete state.courses[code]; // 取消预选同时清除实选
+      } else { // sel-done
+        if(el.checked) state.courses[code]="done";
+        else if(state.courses[code]==="done") state.courses[code]="plan"; // 取消实选退回预选
+      }
+      save(); renderSummary(); renderCourses();
+    }
     else if(el.classList.contains("mile-toggle")){ state.milestones[el.dataset.id].done = el.checked; save(); renderAll(); }
     else if(el.classList.contains("prac-report")){ state.milestones[el.dataset.id].report = el.checked; save(); renderMilestones(); }
     else if(el.classList.contains("prac-attach")){ state.milestones[el.dataset.id].attach = el.checked; save(); renderMilestones(); }
@@ -1011,6 +1193,10 @@ function bindEvents(){
       else if(a==="addLecture") lectureModal();
       else if(a==="addPaper") paperModal();
       else if(a==="official") importOfficialSchedule();
+      else if(a==="importHtml") importHtmlModal();
+      else if(a==="prevWeek"){ state._viewWeek = Math.max(1, currentViewWeek()-1); save(); renderSchedule(); }
+      else if(a==="nextWeek"){ state._viewWeek = currentViewWeek()+1; save(); renderSchedule(); }
+      else if(a==="thisWeek"){ state._viewWeek = null; save(); renderSchedule(); }
     }
     else if(el.dataset.delCustom){ delete state.courses[el.dataset.delCustom]; state.custom=state.custom.filter(c=>c.id!==el.dataset.delCustom); save(); renderAll(); }
     else if(el.dataset.delPaper){ state.papers=state.papers.filter(p=>p.id!==el.dataset.delPaper); save(); renderThesis(); }
