@@ -217,7 +217,8 @@ tbody tr:hover{background:var(--bg)}
       <h3>智能课表 <span class="hint" id="weekInfo">第 — 周</span></h3>
       <div class="row mb">
         <button class="btn pri" data-action="addBlock">＋ 添加课程时段</button>
-        <button class="btn" data-action="ics">⬇ 导出 .ics 日历</button>
+        <button class="btn" data-action="official">📋 载入官方秋季课表</button>
+        <button class="btn" data-action="ics">⬇ 导出 .ics（导入 Google 日历）</button>
         <button class="btn" data-action="vision">🧠 截图识别导入</button>
         <label class="btn" style="cursor:pointer"><input type="checkbox" id="freeToggle" style="vertical-align:-2px"> 高亮空闲时段</label>
       </div>
@@ -556,15 +557,24 @@ function addCustomCourse(){
 }
 
 function timelineModal(){
-  openModal(`<h3>选课时间与提示（往年推测）</h3>
+  openModal(`<h3>选课时间与提示</h3>
     <table><thead><tr><th>学期</th><th>时间</th><th>说明</th></tr></thead><tbody>
     <tr><td>秋季学期</td><td>8 月中下旬 ~ 9 月中旬</td><td>5 轮预选 + 1 轮退课（参照 2024 秋季 8/21–9/15）</td></tr>
     <tr><td>春季学期</td><td>2 月中下旬</td><td>开学前 1–2 周（推测）</td></tr>
     <tr><td>第三 / 夏季学期</td><td>5 月底 ~ 6 月</td><td>短学期通常 6–7 月开课（推测）</td></tr></tbody></table>
-    <div class="mt disc" style="border:none;padding:0">
-      <p>入口：<a href="http://yjsxk.xmu.edu.cn/" target="_blank">研究生选课系统 yjsxk.xmu.edu.cn</a>（经 <a href="https://ids.xmu.edu.cn/" target="_blank">统一身份认证</a>登录）。</p>
-      <p class="mt">提示：高级人工智能（信息学院 13058 / 航空航天学院 G10303800030）不可复选；工程素养训练为信息学院硕士必选。</p>
-    </div>
+    <p class="mt">入口：<a href="http://yjsxk.xmu.edu.cn/" target="_blank">研究生选课系统 yjsxk.xmu.edu.cn</a>（经 <a href="https://ids.xmu.edu.cn/" target="_blank">统一身份认证</a>登录）；选课指南 <a href="https://gs.xmu.edu.cn/info/1721/58292.htm" target="_blank">下载地址</a>。</p>
+    <h4 style="margin:14px 0 6px;color:var(--navy)">2026-2027 秋季选课须知（信息学院）</h4>
+    <ul style="margin-left:18px;font-size:13px">
+      <li>必须按<b>培养方案中的课程代码</b>选课，代码不一致即使课程名相同也不计入。</li>
+      <li><b>多选必修课学分可抵选修课学分</b>并计入总学分。</li>
+      <li>选课须<b>导师签字备案</b>（入学后二周内制定个人学习计划，无导师签字选/退课无效）。</li>
+      <li><b>跨学科课程最多 1 门（2 学分）</b>，超出部分不计入；本系课程内互选不算跨学科。</li>
+      <li>《专业英语》按系别选班（硕/直博必选）；《中国式现代化的理论与实践》硕必选、名单已导入<b>勿退选</b>；《习近平著作选读》博必选、本学年改春季；《工程伦理》专博专硕必选（秋+夏各一班）。</li>
+      <li>《科技论文写作》信息学院 1-4 班（含人工智能系）；《论文写作指导》面向信息与通信工程系，两者<b>不可重复选修</b>。</li>
+      <li>高级人工智能（信息学院 13058 / 航空航天学院 G10303800030）不可复选；工程素养训练为信息学院硕士必选。</li>
+      <li>专业课免修申请截止 <b>9 月 14 日</b>；硕博连读硕士阶段已修课程自动计入总学分。</li>
+      <li>开课学期以《开课计划》为准，并非固定；课程群号见课表最后一列，选上后尽快加群。</li>
+    </ul>
     <div class="row mt"><button class="btn pri" data-close>知道了</button></div>`);
 }
 
@@ -579,6 +589,56 @@ function weekNumber(){
     return diff>=0 ? diff+1 : null;
   }catch(e){ return null; }
 }
+/* 官方 2026-2027 秋季课表（AI 相关课程，含课程群号来源见学校资料 xlsx） */
+const OFFICIAL_SCHEDULE = [
+  {name:"机器学习（信息1班）",teacher:"王程,臧彧,温程璐,沈思淇,范晓亮",sch:"星期五[2-4节]西部片区2号楼205"},
+  {name:"机器学习（信息2班）",teacher:"苏松志",sch:"星期四[9-11节]西部片区2号楼205"},
+  {name:"机器学习（信息3班）",teacher:"丁兴号",sch:"星期一[9-11节]学武楼（1号楼）B305"},
+  {name:"专业英语（智能软工班）",teacher:"刘弘",sch:"星期三[3-4节]学武楼（1号楼）A404"},
+  {name:"专业英语（计算机班）",teacher:"罗晔",sch:"星期四[5-6节]西部片区2号楼205"},
+  {name:"专业英语（通信班）",teacher:"吴云峰",sch:"星期三[7-8节]西部片区2号楼109"},
+  {name:"高级人工智能",teacher:"孙晓帅,胡啸林",sch:"星期四[3-4节]西部片区2号楼109;星期四[7-8节]西部片区2号楼109"},
+  {name:"计算机视觉",teacher:"曲延云",sch:"星期三[9-11节]西部片区2号楼106"},
+  {name:"计算机视觉",teacher:"罗志明",sch:"星期二[9-11节]西部片区2号楼106"},
+  {name:"计算语言学",teacher:"史晓东",sch:"星期一[3-4节]西部片区2号楼210;星期三[1-2节]西部片区2号楼210"},
+  {name:"科技论文写作（信息4班）",teacher:"郑清萍,王菡子",sch:"星期二[5-6节]西部片区2号楼109"},
+  {name:"最优化理论与算法",teacher:"陈胤燃",sch:"星期三[9-11节]学武楼（1号楼）A204"},
+  {name:"智能计算系统",teacher:"刘向荣,金泰松",sch:"星期二[3-4节]西部片区2号楼108"},
+  {name:"心脑计算",teacher:"吴梅红",sch:"星期四[7-8节]学武楼（1号楼）B206"},
+  {name:"网络系统前沿研究",teacher:"向乔,高聪明,唐璐,苏强",sch:"星期二[9-11节]西部片区2号楼109"},
+  {name:"软件测试与程序分析基础",teacher:"黄华勋,吴荣鑫",sch:"星期一[5-6节]西部片区2号楼108"},
+  {name:"生成式人工智能技术与应用",teacher:"张志宏",sch:"星期五[9-11节]西部片区2号楼108"},
+  {name:"多媒体技术",teacher:"赵万磊",sch:"星期五[5-6节]西部片区2号楼210"},
+  {name:"工程伦理",teacher:"袁飞,薛镖",sch:"星期二[1-2节]西部片区2号楼205"},
+  {name:"大学生职业素养养成",teacher:"陈梦,蔡婧蓉",sch:"星期一[7-8节]西部片区4号楼106"},
+  {name:"矩阵论",teacher:"陈中贵",sch:"星期二[5-6节]西部片区4号楼103;星期三[5-6节]西部片区4号楼103"},
+  {name:"算法设计与分析",teacher:"林文水",sch:"星期三[9-11节]学武楼（1号楼）B212"},
+  {name:"计算智能",teacher:"曲延云,陈胤燃",sch:"星期一[9-11节]西部片区2号楼210"},
+  {name:"智算系统前沿",teacher:"吕熠娜,高聪明,沈耀斌",sch:"星期五[5-6节]西部片区2号楼211"},
+  {name:"分布式系统",teacher:"王晓黎",sch:"星期五[3-4节]西部片区2号楼109"},
+];
+function parseSchedule(str){
+  const dayMap={"一":0,"二":1,"三":2,"四":3,"五":4,"六":5,"日":6};
+  const blocks=[];
+  str.split(";").forEach(part=>{
+    const dm=part.match(/星期([一二三四五六日])/);
+    const pm=part.match(/\[(\d+)-(\d+)节\]/);
+    const rm=part.match(/节\]\s*(.+)$/);
+    if(dm&&pm){ blocks.push({day:dayMap[dm[1]], start:+pm[1]-1, end:+pm[2]-1, room:rm?rm[1].trim():""}); }
+  });
+  return blocks;
+}
+function importOfficialSchedule(){
+  const startN = state.schedule.length;
+  OFFICIAL_SCHEDULE.forEach(o=>{
+    parseSchedule(o.sch).forEach(b=>{
+      state.schedule.push({id:uid(), name:o.name, day:b.day, start:b.start, end:b.end, room:b.room, color:"var(--brand)"});
+    });
+  });
+  save(); renderSchedule();
+  toast(`已载入 ${OFFICIAL_SCHEDULE.length} 门官方课程（${state.schedule.length-startN} 个时段）。点课程块可改颜色/删除。`,"ok");
+}
+
 function renderSchedule(){
   const w = weekNumber();
   $("#weekInfo").textContent = w ? `第 ${w} 周` : "（请在设置中填写学期起始日期）";
@@ -599,24 +659,27 @@ function renderSchedule(){
             <div class="nm">${esc(blk.name)}</div><div class="rm">${esc(blk.room||"")}</div>
           </div></div>`;
       } else if(!covered[d+"-"+p]){
-        let cls = "cell";
+        let cls = "cell clickable";
         if(free){ cls += (p<4 ? " free-morning" : (p<8 ? " free-noon" : "")); }
-        cells += `<div class="${cls}" style="grid-row:${p+2};grid-column:${d+2}"></div>`;
+        cells += `<div class="${cls}" data-day="${d}" data-period="${p}" title="点击添加任务/课程" style="grid-row:${p+2};grid-column:${d+2}"></div>`;
       }
     }
   }
   $("#timetable").innerHTML = cells;
-  $("#ttLegend").innerHTML = "点击课程块可编辑；颜色在编辑器中设置。";
+  $("#ttLegend").innerHTML = "点<b>课程块</b>可编辑/删除；点<b>空白格</b>可直接在该时段添加任务或课程。同步 Google 日历：点「导出 .ics」→ 打开 Google 日历 → 设置 → 导入日历 → 上传 .ics（每个星期重复的课会自动按周重复）。";
 }
 function scheduleBlock(id){ return state.schedule.find(s=>s.id===id); }
-function blockModal(id){
+function blockModal(id, prefill){
   const b = id ? scheduleBlock(id) : null;
-  openModal(`<h3>${b?"编辑":"添加"}课程时段</h3>
-    <div class="field"><label>课程名称</label><input id="b_name" value="${b?esc(b.name):""}"></div>
+  const day = b ? b.day : (prefill && prefill.day!==undefined ? prefill.day : 0);
+  const start = b ? b.start : (prefill && prefill.start!==undefined ? prefill.start : 0);
+  const end = b ? b.end : (prefill && prefill.end!==undefined ? prefill.end : 0);
+  openModal(`<h3>${b?"编辑":"添加"}课程时段 / 任务</h3>
+    <div class="field"><label>课程名称 / 任务</label><input id="b_name" value="${b?esc(b.name):""}"></div>
     <div class="mrow">
-      <div class="field"><label>星期</label><select id="b_day">${DAYS.map((d,i)=>`<option value="${i}" ${b&&b.day===i?"selected":""}>${d}</option>`).join("")}</select></div>
-      <div class="field"><label>开始节次</label><select id="b_start">${PERIOD_TIMES.map((_,i)=>`<option value="${i}" ${b&&b.start===i?"selected":""}>第 ${i+1} 节</option>`).join("")}</select></div>
-      <div class="field"><label>结束节次</label><select id="b_end">${PERIOD_TIMES.map((_,i)=>`<option value="${i}" ${b&&b.end===i?"selected":""}>第 ${i+1} 节</option>`).join("")}</select></div>
+      <div class="field"><label>星期</label><select id="b_day">${DAYS.map((d,i)=>`<option value="${i}" ${day===i?"selected":""}>${d}</option>`).join("")}</select></div>
+      <div class="field"><label>开始节次</label><select id="b_start">${PERIOD_TIMES.map((_,i)=>`<option value="${i}" ${start===i?"selected":""}>第 ${i+1} 节</option>`).join("")}</select></div>
+      <div class="field"><label>结束节次</label><select id="b_end">${PERIOD_TIMES.map((_,i)=>`<option value="${i}" ${end===i?"selected":""}>第 ${i+1} 节</option>`).join("")}</select></div>
     </div>
     <div class="mrow">
       <div class="field"><label>教室（可选）</label><input id="b_room" value="${b?esc(b.room||""):""}"></div>
@@ -797,8 +860,10 @@ function settingsModal(){
     <div class="field"><label>API Key</label><input id="s_key" type="password" value="${esc(s.llmApiKey)}"></div>
     <h4 style="margin:14px 0 6px;color:var(--navy)">GitHub Gist 云同步</h4>
     <div class="mrow"><div class="field"><label>Personal Access Token</label><input id="s_token" type="password" value="${esc(s.gistToken)}"><div class="help">仅本机调用 GitHub API 用，<b>绝不</b>写入导出数据或上传云端。经典 Token 需勾选 gist 权限；细粒度 Token 需授予 Gists 访问。</div></div><div class="field"><label>Gist ID（留空则上传时自动创建私有 Gist）</label><input id="s_gid" value="${esc(s.gistId)}"></div></div>
+    <div class="row"><button class="btn sm" id="s_test">🔍 测试 Gist 连接</button><span class="hint" style="font-size:12px;color:var(--muted)" id="s_testResult"></span></div>
     <div class="row mt"><button class="btn pri" id="s_save">保存设置</button><button class="btn" data-close>取消</button></div>`);
   $("#s_provider").value = s.llmProvider;
+  $("#s_test").onclick = async ()=>{ await testGist(); };
   $("#s_save").onclick = ()=>{ Object.assign(state.settings,{startDate:$("#s_start").value,llmProvider:$("#s_provider").value,llmModel:$("#s_model").value.trim(),llmBaseUrl:$("#s_base").value.trim(),llmApiKey:$("#s_key").value.trim(),gistToken:$("#s_token").value.trim(),gistId:$("#s_gid").value.trim()}); save(); closeModal(); renderSchedule(); toast("设置已保存","ok"); };
 }
 
@@ -876,6 +941,25 @@ async function gistLoad(){
     toast("载入失败：" + (e.name==="TypeError" ? "网络/CORS 被拦截——建议部署到 https 后再同步" : e.message),"err");
   }
 }
+async function testGist(){
+  const token = $("#s_token") ? $("#s_token").value.trim() : state.settings.gistToken;
+  if(!token){ toast("请先填写 Token","err"); return; }
+  const out = $("#s_testResult"); if(out) out.textContent = "测试中…";
+  const H = {Authorization:"Bearer "+token,"Accept":"application/vnd.github+json"};
+  try{
+    const ru = await fetch("https://api.github.com/user",{headers:H});
+    if(!ru.ok){ const msg="Token 无效 " + ghErr(ru.status); if(out) out.textContent=msg; toast(msg,"err"); return; }
+    const j = await ru.json();
+    // 关键：实际探测 gist 权限
+    const rg = await fetch("https://api.github.com/gists?per_page=1",{headers:H});
+    const hasGist = rg.ok;
+    const msg = `已连接 @${j.login} · gist 权限：${hasGist?"✓ 可用":"✗ 不可用（Token 需勾选 gist 权限）"}`;
+    if(out) out.textContent=msg; toast(msg, hasGist?"ok":"err");
+  }catch(e){
+    const msg = "连接失败：" + (e.name==="TypeError" ? "网络/CORS 被拦截——本地 file:// 打开可能受限，请部署到 https（GitHub Pages）后再试" : e.message);
+    if(out) out.textContent=msg; toast(msg,"err");
+  }
+}
 
 /* =====================================================================
    Modal / 事件绑定
@@ -913,8 +997,10 @@ function bindEvents(){
   $("#filterAI").style.opacity = state._aiOnly?"1":".6";
   // 委托点击
   document.addEventListener("click",e=>{
-    const el=e.target.closest("[data-action],[data-del-custom],[data-del-paper],[data-edit-paper],[data-del-lecture],[data-step],[data-pstep],[data-prac]");
+    const el=e.target.closest("[data-action],[data-del-custom],[data-del-paper],[data-edit-paper],[data-del-lecture],[data-step],[data-pstep],[data-prac],.course-block,.cell[data-period]");
     if(!el) return;
+    if(el.classList.contains("course-block")){ blockModal(el.dataset.id); return; }
+    if(el.classList.contains("cell") && el.dataset.period!==undefined){ blockModal(null, {day:+el.dataset.day, start:+el.dataset.period, end:+el.dataset.period}); return; }
     if(el.dataset.action){
       const a=el.dataset.action;
       if(a==="addCourse") addCustomCourse();
@@ -924,6 +1010,7 @@ function bindEvents(){
       else if(a==="vision") visionModal();
       else if(a==="addLecture") lectureModal();
       else if(a==="addPaper") paperModal();
+      else if(a==="official") importOfficialSchedule();
     }
     else if(el.dataset.delCustom){ delete state.courses[el.dataset.delCustom]; state.custom=state.custom.filter(c=>c.id!==el.dataset.delCustom); save(); renderAll(); }
     else if(el.dataset.delPaper){ state.papers=state.papers.filter(p=>p.id!==el.dataset.delPaper); save(); renderThesis(); }
@@ -932,7 +1019,6 @@ function bindEvents(){
     else if(el.dataset.step){ const [id,i]=el.dataset.step.split(":"); state.milestones[id].step=parseInt(i)+1; save(); renderMilestones(); }
     else if(el.dataset.pstep!==undefined){ state.paperStep=parseInt(el.dataset.pstep); save(); renderThesis(); }
     else if(el.dataset.prac){ const m=state.milestones.practice; m.months=Math.max(0,Math.min(6,(m.months||0)+parseInt(el.dataset.prac))); save(); renderMilestones(); }
-    else if(el.classList.contains("course-block")){ blockModal(el.dataset.id); }
   });
   // 关闭按钮
   document.addEventListener("click",e=>{ if(e.target.closest("[data-close]")) closeModal(); });
